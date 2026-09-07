@@ -1,6 +1,6 @@
 import {
   MATCH_STATUSES,
-  type MatchUpdate,
+  type MatchDetailsUpdate,
   type TournamentMatch,
 } from "@/domain/matches/types";
 
@@ -92,6 +92,12 @@ export class IndexedDbMatchRepository implements MatchRepository {
   async createMatch(match: TournamentMatch): Promise<TournamentMatch> {
     const normalized = normalizeMatch(match);
     assertValidMatch(normalized);
+    if (normalized.status !== "DRAFT") {
+      throw new MatchRepositoryError(
+        "INVALID_MATCH",
+        "Matches must be created as drafts and finalized through the lifecycle command.",
+      );
+    }
     const database = await this.database.getConnection();
     const transaction = database.transaction(
       [TOURNAMENT_STORE, MATCH_STORE],
@@ -163,7 +169,7 @@ export class IndexedDbMatchRepository implements MatchRepository {
   async updateMatch(
     tournamentId: string,
     matchId: string,
-    updates: MatchUpdate,
+    updates: MatchDetailsUpdate,
   ): Promise<TournamentMatch | null> {
     const database = await this.database.getConnection();
     const transaction = database.transaction(MATCH_STORE, "readwrite");
@@ -178,10 +184,11 @@ export class IndexedDbMatchRepository implements MatchRepository {
     }
 
     const updated = normalizeMatch({
-      ...existing,
-      ...updates,
       id: existing.id,
       tournamentId: existing.tournamentId,
+      matchNumber: updates.matchNumber ?? existing.matchNumber,
+      name: Object.hasOwn(updates, "name") ? updates.name : existing.name,
+      status: existing.status,
       createdAt: existing.createdAt,
       updatedAt: this.now(),
     });

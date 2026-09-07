@@ -12,8 +12,8 @@ export interface TournamentMatch {
   readonly updatedAt: string;
 }
 
-export type MatchUpdate = Partial<
-  Pick<TournamentMatch, "matchNumber" | "name" | "status">
+export type MatchDetailsUpdate = Partial<
+  Pick<TournamentMatch, "matchNumber" | "name">
 >;
 
 export const PARTICIPATION_STATUSES = ["PLAYED", "DNP"] as const;
@@ -39,4 +39,3 @@ export type MatchResultUpdate = Partial<
     "placement" | "kills" | "participationStatus" | "source"
   >
 >;
-

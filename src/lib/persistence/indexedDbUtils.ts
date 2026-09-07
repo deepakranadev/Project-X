@@ -37,7 +37,12 @@ export function observeTransaction(
 }
 
 export async function abortTransaction(transaction: IDBTransaction): Promise<void> {
-  transaction.abort();
+  try {
+    transaction.abort();
+  } catch {
+    // A failed request may already have moved the transaction to done.
+    return;
+  }
   try {
     await transactionToPromise(transaction);
   } catch {

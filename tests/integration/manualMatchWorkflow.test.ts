@@ -7,6 +7,7 @@ import type { Tournament } from "../../src/domain/tournaments/types";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
 import { finalizeGuestMatch } from "../../src/lib/persistence/finalizeGuestMatch";
 import { GuestDatabase } from "../../src/lib/persistence/guestDatabase";
+import { IndexedDbMatchLifecycleRepository } from "../../src/lib/persistence/indexedDbMatchLifecycleRepository";
 import { IndexedDbMatchRepository } from "../../src/lib/persistence/indexedDbMatchRepository";
 import { IndexedDbMatchResultRepository } from "../../src/lib/persistence/indexedDbMatchResultRepository";
 import { IndexedDbTeamRepository } from "../../src/lib/persistence/indexedDbTeamRepository";
@@ -75,23 +76,22 @@ async function setup(databaseName: string) {
   const teams = new IndexedDbTeamRepository({ database });
   const matches = new IndexedDbMatchRepository({ database });
   const results = new IndexedDbMatchResultRepository({ database });
+  const lifecycle = new IndexedDbMatchLifecycleRepository({ database });
   await tournaments.createTournament(tournament);
   await teams.bulkCreateTeams([team("one"), team("two")]);
   await matches.createMatch(match);
-  return { database, teams, matches, results };
+  return { database, lifecycle, matches, results };
 }
 
 describe("manual match workflow", () => {
   it("persists a valid result set and finalizes the match", async () => {
-    const { database, teams, matches, results } = await setup("workflow-finalize-test");
+    const { database, lifecycle, results } = await setup("workflow-finalize-test");
     const finalized = await finalizeGuestMatch({
       tournamentId: tournament.id,
       matchId: match.id,
       name: "Erangel",
       results: [result("one", 1, 8), result("two", 2, 0)],
-      matchRepository: matches,
-      matchResultRepository: results,
-      teamRepository: teams,
+      lifecycleRepository: lifecycle,
     });
 
     expect(finalized).toMatchObject({
@@ -106,14 +106,12 @@ describe("manual match workflow", () => {
   });
 
   it("does not allow an incomplete or invalid draft to become finalized", async () => {
-    const { database, teams, matches, results } = await setup("workflow-invalid-test");
+    const { database, lifecycle, matches } = await setup("workflow-invalid-test");
     const invalid = await finalizeGuestMatch({
       tournamentId: tournament.id,
       matchId: match.id,
       results: [result("one", 1, -2), result("two", null, null)],
-      matchRepository: matches,
-      matchResultRepository: results,
-      teamRepository: teams,
+      lifecycleRepository: lifecycle,
     });
 
     expect(invalid).toMatchObject({ ok: false });
@@ -127,27 +125,29 @@ describe("manual match workflow", () => {
   });
 
   it("reopens a finalized match for edits and persists placement, finishes, and DNP changes", async () => {
-    const { database, teams, matches, results } = await setup("workflow-edit-test");
+    const { database, lifecycle, matches, results } = await setup("workflow-edit-test");
     const original = [result("one", 1, 8), result("two", 2, 4)];
     await finalizeGuestMatch({
       tournamentId: tournament.id,
       matchId: match.id,
       results: original,
-      matchRepository: matches,
-      matchResultRepository: results,
-      teamRepository: teams,
+      lifecycleRepository: lifecycle,
     });
 
-    await matches.updateMatch(tournament.id, match.id, { status: "DRAFT" });
-    await results.bulkSaveResults(tournament.id, match.id, [
-      { ...original[0]!, placement: 2, kills: 10 },
-      {
-        ...original[1]!,
-        placement: null,
-        kills: null,
-        participationStatus: "DNP",
-      },
-    ]);
+    await lifecycle.reopenMatch(tournament.id, match.id);
+    await lifecycle.saveMatchDraft({
+      tournamentId: tournament.id,
+      matchId: match.id,
+      results: [
+        { ...original[0]!, placement: 2, kills: 10 },
+        {
+          ...original[1]!,
+          placement: null,
+          kills: null,
+          participationStatus: "DNP",
+        },
+      ],
+    });
 
     await expect(results.getResultsByMatch(tournament.id, match.id)).resolves.toMatchObject([
       { teamId: "one", placement: 2, kills: 10, participationStatus: "PLAYED" },

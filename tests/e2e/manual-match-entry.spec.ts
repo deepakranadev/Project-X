@@ -34,15 +34,33 @@ test("creates, finalizes, reloads, and edits a team-level manual match on mobile
   await expect(editor.getByLabel("Placement for Revenant")).toBeDisabled();
   await expect(editor.getByLabel("Finishes for Revenant")).toBeDisabled();
 
+  await expect(editor.getByText("Saved", { exact: true })).toBeVisible();
+  await editor.getByLabel("Finishes for 8Bit").fill("6");
   await editor.getByRole("button", { name: "Finalize Match" }).click();
   await expect(editor.getByText("Finalized", { exact: true })).toBeVisible();
+  await editor.getByRole("button", { name: "Close" }).click();
+  await expect(editor).toHaveCount(0);
+  const matchRow = page.locator("li").filter({
+    has: page.getByRole("button", { name: "Open Match 1" }),
+  });
+  await expect(matchRow.getByText("Finalized", { exact: true })).toBeVisible();
+  await page.waitForTimeout(700);
+  await expect(matchRow.getByText("Finalized", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Standings", exact: true }).click();
+  await expect(page.getByText("1 finalized match", { exact: true })).toBeVisible();
 
   await page.reload();
   await page.getByRole("link", { name: "Matches", exact: true }).click();
+  await expect(
+    page.locator("li").filter({
+      has: page.getByRole("button", { name: "Open Match 1" }),
+    }).getByText("Finalized", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Open Match 1" }).click();
   const reopened = page.locator('[data-match-entry]');
   await expect(reopened.getByLabel("Placement for Team Soul")).toHaveValue("1");
   await expect(reopened.getByLabel("Finishes for Team Soul")).toHaveValue("12");
+  await expect(reopened.getByLabel("Finishes for 8Bit")).toHaveValue("6");
   await expect(reopened.getByRole("button", { name: "Mark Revenant as played" })).toHaveAttribute("aria-pressed", "true");
 
   await reopened.getByLabel("Finishes for GodLike").fill("10");

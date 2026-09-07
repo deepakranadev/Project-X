@@ -19,12 +19,15 @@ import {
   validateManualMatchResults,
 } from "@/domain/matches/validation";
 import type { Team } from "@/domain/teams/types";
-import { finalizeGuestMatch } from "@/lib/persistence/finalizeGuestMatch";
-import { getClientMatchRepository } from "@/lib/persistence/clientMatchRepository";
+import { getClientMatchLifecycleRepository } from "@/lib/persistence/clientMatchLifecycleRepository";
 import { getClientMatchResultRepository } from "@/lib/persistence/clientMatchResultRepository";
-import { getClientTeamRepository } from "@/lib/persistence/clientTeamRepository";
+import { finalizeGuestMatch } from "@/lib/persistence/finalizeGuestMatch";
 
 import { formatMatchEntryIssue, matchResultHasIssue } from "./matchEntryIssues";
+import {
+  createMatchWriteCoordinator,
+  type ExplicitMatchAction,
+} from "./matchWriteCoordinator";
 import { MatchResultRow } from "./MatchResultRow";
 
 interface MatchEntryProps {
@@ -44,17 +47,22 @@ export function MatchEntry({
 }: MatchEntryProps) {
   const [results, setResults] = useState<readonly StoredMatchResult[]>([]);
   const [draftName, setDraftName] = useState(match.name ?? "");
-  const [status, setStatus] = useState(match.status);
   const [issues, setIssues] = useState<readonly ManualMatchValidationIssue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
   const [revision, setRevision] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [explicitAction, setExplicitAction] =
+    useState<ExplicitMatchAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const editorRef = useRef<HTMLFormElement>(null);
   const resultsRef = useRef<readonly StoredMatchResult[]>([]);
   const nameRef = useRef(draftName);
   const revisionRef = useRef(0);
+  const dirtyRef = useRef(false);
+  const autosaveTimerRef = useRef<number | null>(null);
+  const writeCoordinatorRef = useRef(createMatchWriteCoordinator());
+  const status = match.status;
 
   const replaceResults = useCallback(
     (next: readonly StoredMatchResult[], markDirty = true) => {
@@ -64,8 +72,8 @@ export function MatchEntry({
         const nextRevision = revisionRef.current + 1;
         revisionRef.current = nextRevision;
         setRevision(nextRevision);
+        dirtyRef.current = true;
         setIsDirty(true);
-        setStatus("DRAFT");
         setSaveState("idle");
         setError(null);
         setIssues([]);
@@ -106,6 +114,8 @@ export function MatchEntry({
         }
         if (!active) return;
         replaceResults(ordered, false);
+        dirtyRef.current = false;
+        setIsDirty(false);
       } catch {
         if (active) {
           setError(
@@ -123,28 +133,37 @@ export function MatchEntry({
     };
   }, [match.id, match.tournamentId, replaceResults, teams]);
 
-  const saveDraft = useCallback(async (force = false): Promise<boolean> => {
-    if (!force && !isDirty) return true;
+  const cancelPendingAutosave = useCallback(() => {
+    if (autosaveTimerRef.current === null) return;
+    window.clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = null;
+  }, []);
+
+  const persistDraftSnapshot = useCallback(async (
+    force = false,
+  ): Promise<boolean> => {
+    if (!force && !dirtyRef.current) return true;
     const savingRevision = revisionRef.current;
+    const savingResults = resultsRef.current;
+    const savingName = nameRef.current;
     setSaveState("saving");
     setError(null);
     try {
-      await getClientMatchResultRepository().saveDraftResults(
-        match.tournamentId,
-        match.id,
-        resultsRef.current,
-      );
-      const updated = await getClientMatchRepository().updateMatch(
-        match.tournamentId,
-        match.id,
-        { name: nameRef.current.trim() || undefined, status: "DRAFT" },
-      );
-      if (!updated) throw new Error("The match no longer exists.");
-      setStatus("DRAFT");
-      onMatchChange(updated);
+      const saved = await getClientMatchLifecycleRepository().saveMatchDraft({
+        tournamentId: match.tournamentId,
+        matchId: match.id,
+        name: savingName,
+        results: savingResults,
+      });
+      onMatchChange(saved.match);
       if (revisionRef.current === savingRevision) {
+        resultsRef.current = saved.results;
+        setResults(saved.results);
+        dirtyRef.current = false;
         setIsDirty(false);
         setSaveState("saved");
+      } else {
+        setSaveState("idle");
       }
       return true;
     } catch {
@@ -154,13 +173,40 @@ export function MatchEntry({
       );
       return false;
     }
-  }, [isDirty, match.id, match.tournamentId, onMatchChange]);
+  }, [match.id, match.tournamentId, onMatchChange]);
+
+  const queueAutosave = useCallback(() => {
+    cancelPendingAutosave();
+    if (!dirtyRef.current || writeCoordinatorRef.current.hasExplicitAction()) {
+      return;
+    }
+    void writeCoordinatorRef.current.enqueue(() => persistDraftSnapshot());
+  }, [cancelPendingAutosave, persistDraftSnapshot]);
 
   useEffect(() => {
-    if (!isDirty || isLoading) return;
-    const timer = window.setTimeout(() => void saveDraft(), 500);
-    return () => window.clearTimeout(timer);
-  }, [isDirty, isLoading, revision, saveDraft]);
+    cancelPendingAutosave();
+    if (
+      !isDirty ||
+      isLoading ||
+      status === "FINALIZED" ||
+      explicitAction !== null
+    ) {
+      return;
+    }
+    autosaveTimerRef.current = window.setTimeout(() => {
+      autosaveTimerRef.current = null;
+      queueAutosave();
+    }, 500);
+    return cancelPendingAutosave;
+  }, [
+    cancelPendingAutosave,
+    explicitAction,
+    isDirty,
+    isLoading,
+    queueAutosave,
+    revision,
+    status,
+  ]);
 
   useEffect(() => {
     if (!isDirty && saveState !== "saving") return;
@@ -174,16 +220,16 @@ export function MatchEntry({
   useEffect(() => {
     if (!isDirty) return;
     const flushWhenHidden = () => {
-      if (document.visibilityState === "hidden") void saveDraft(true);
+      if (document.visibilityState === "hidden") queueAutosave();
     };
-    const flushOnPageHide = () => void saveDraft(true);
+    const flushOnPageHide = () => queueAutosave();
     document.addEventListener("visibilitychange", flushWhenHidden);
     window.addEventListener("pagehide", flushOnPageHide);
     return () => {
       document.removeEventListener("visibilitychange", flushWhenHidden);
       window.removeEventListener("pagehide", flushOnPageHide);
     };
-  }, [isDirty, saveDraft]);
+  }, [isDirty, queueAutosave]);
 
   function markNameChanged(value: string) {
     nameRef.current = value;
@@ -191,8 +237,8 @@ export function MatchEntry({
     const nextRevision = revisionRef.current + 1;
     revisionRef.current = nextRevision;
     setRevision(nextRevision);
+    dirtyRef.current = true;
     setIsDirty(true);
-    setStatus("DRAFT");
     setSaveState("idle");
     setError(null);
   }
@@ -259,59 +305,90 @@ export function MatchEntry({
     if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
       return;
     }
-    if (isDirty) void saveDraft();
+    if (dirtyRef.current) queueAutosave();
   }
 
   async function handleClose() {
-    const saved = await saveDraft(true);
-    if (saved) onClose();
+    cancelPendingAutosave();
+    if (writeCoordinatorRef.current.hasExplicitAction()) return;
+    setExplicitAction("close");
+    let shouldClose = false;
+    try {
+      const closed = await writeCoordinatorRef.current.runExplicit(
+        "close",
+        () => persistDraftSnapshot(false),
+      );
+      shouldClose = closed.started && closed.value;
+    } finally {
+      setExplicitAction(null);
+    }
+    if (shouldClose) onClose();
+  }
+
+  async function handleSaveDraft() {
+    cancelPendingAutosave();
+    if (writeCoordinatorRef.current.hasExplicitAction()) return;
+    setExplicitAction("save");
+    try {
+      await writeCoordinatorRef.current.runExplicit("save", () =>
+        persistDraftSnapshot(true),
+      );
+    } finally {
+      setExplicitAction(null);
+    }
   }
 
   async function handleFinalize() {
-    const validation = validateManualMatchResults(resultsRef.current, {
-      tournamentId: match.tournamentId,
-      matchId: match.id,
-      participantTeamIds: teams.map((team) => team.id),
-    });
-    if (!validation.valid) {
-      setIssues(validation.issues);
-      await saveDraft(true);
-      return;
-    }
-
+    cancelPendingAutosave();
+    if (writeCoordinatorRef.current.hasExplicitAction()) return;
+    setExplicitAction("finalize");
     setSaveState("saving");
     setError(null);
     try {
-      const finalized = await finalizeGuestMatch({
-        tournamentId: match.tournamentId,
-        matchId: match.id,
-        name: nameRef.current,
-        results: resultsRef.current,
-        matchRepository: getClientMatchRepository(),
-        matchResultRepository: getClientMatchResultRepository(),
-        teamRepository: getClientTeamRepository(),
-      });
-      if (!finalized.ok) {
-        setIssues(finalized.issues);
-        setStatus("DRAFT");
+      await writeCoordinatorRef.current.runExplicit("finalize", async () => {
+        const latestResults = resultsRef.current;
+        const validation = validateManualMatchResults(latestResults, {
+          tournamentId: match.tournamentId,
+          matchId: match.id,
+          participantTeamIds: teams.map((team) => team.id),
+        });
+        if (!validation.valid) {
+          setIssues(validation.issues);
+          await persistDraftSnapshot(true);
+          return;
+        }
+
+        const finalized = await finalizeGuestMatch({
+          tournamentId: match.tournamentId,
+          matchId: match.id,
+          name: nameRef.current,
+          results: latestResults,
+          lifecycleRepository: getClientMatchLifecycleRepository(),
+        });
+        if (!finalized.ok) {
+          setIssues(finalized.issues);
+          setSaveState("saved");
+          return;
+        }
+        resultsRef.current = finalized.results;
+        setResults(finalized.results);
+        setIssues([]);
+        dirtyRef.current = false;
+        setIsDirty(false);
         setSaveState("saved");
-        return;
-      }
-      resultsRef.current = finalized.results;
-      setResults(finalized.results);
-      setIssues([]);
-      setStatus("FINALIZED");
-      setIsDirty(false);
-      setSaveState("saved");
-      onMatchChange(finalized.match);
+        onMatchChange(finalized.match);
+      });
     } catch {
       setSaveState("error");
       setError("The match could not be finalized. Your draft remains available.");
+    } finally {
+      setExplicitAction(null);
     }
   }
 
   const teamById = new Map(teams.map((team) => [team.id, team]));
   const uniqueMessages = [...new Set(issues.map(formatMatchEntryIssue))];
+  const editorLocked = status === "FINALIZED" || explicitAction !== null;
 
   return (
     <form
@@ -342,6 +419,7 @@ export function MatchEntry({
             <button
               className="min-h-10 rounded-lg px-2 text-sm font-bold text-slate-400 hover:bg-white/5 hover:text-white"
               type="button"
+              disabled={explicitAction !== null}
               onClick={() => void handleClose()}
             >
               Close
@@ -356,6 +434,7 @@ export function MatchEntry({
           id={`match-name-${match.id}`}
           maxLength={80}
           placeholder={`Match ${match.matchNumber}`}
+          disabled={editorLocked}
           value={draftName}
           onChange={(event) => markNameChanged(event.currentTarget.value)}
         />
@@ -368,7 +447,7 @@ export function MatchEntry({
         <button
           className="min-h-11 rounded-lg border border-white/10 px-3 text-sm font-bold text-slate-200 hover:border-lime-300/40 hover:text-lime-300"
           type="button"
-          disabled={isLoading}
+          disabled={isLoading || editorLocked}
           onClick={autoFillPlacements}
         >
           Auto-fill placements
@@ -400,6 +479,7 @@ export function MatchEntry({
                 result={result}
                 team={team}
                 hasIssue={hasIssue}
+                disabled={editorLocked}
                 onNumberChange={(field, value) =>
                   updateNumber(index, field, value)
                 }
@@ -421,15 +501,15 @@ export function MatchEntry({
             <button
               className="min-h-12 rounded-lg border border-white/10 px-4 text-sm font-black text-white disabled:opacity-50"
               type="button"
-              disabled={isLoading || saveState === "saving"}
-              onClick={() => void saveDraft(true)}
+              disabled={isLoading || editorLocked}
+              onClick={() => void handleSaveDraft()}
             >
               Save Draft
             </button>
             <button
               className="primary-action min-h-12 px-4 disabled:cursor-not-allowed disabled:opacity-50"
               type="button"
-              disabled={isLoading || saveState === "saving"}
+              disabled={isLoading || editorLocked}
               onClick={() => void handleFinalize()}
             >
               Finalize Match

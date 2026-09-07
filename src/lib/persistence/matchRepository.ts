@@ -1,5 +1,5 @@
 import type {
-  MatchUpdate,
+  MatchDetailsUpdate,
   TournamentMatch,
 } from "@/domain/matches/types";
 
@@ -12,8 +12,7 @@ export interface MatchRepository {
   updateMatch(
     tournamentId: string,
     matchId: string,
-    updates: MatchUpdate,
+    updates: MatchDetailsUpdate,
   ): Promise<TournamentMatch | null>;
   deleteMatch(tournamentId: string, matchId: string): Promise<void>;
 }
-

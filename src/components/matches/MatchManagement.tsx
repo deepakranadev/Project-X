@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { createEmptyManualResults } from "@/domain/matches/createEmptyManualResults";
 import type { TournamentMatch } from "@/domain/matches/types";
 import type { Team } from "@/domain/teams/types";
+import { getClientMatchLifecycleRepository } from "@/lib/persistence/clientMatchLifecycleRepository";
 import { getClientMatchRepository } from "@/lib/persistence/clientMatchRepository";
-import { getClientMatchResultRepository } from "@/lib/persistence/clientMatchResultRepository";
 import { getClientTeamRepository } from "@/lib/persistence/clientTeamRepository";
-import { createGuestMatch } from "@/lib/persistence/createGuestMatch";
+import { createGuestMatchWithInitialResults } from "@/lib/persistence/createGuestMatch";
 
 import { MatchEntry } from "./MatchEntry";
 
@@ -74,20 +73,13 @@ export function MatchManagement({
         setError("Add at least one team before creating a match.");
         return;
       }
-      const created = await createGuestMatch({
+      const createdSnapshot = await createGuestMatchWithInitialResults({
         tournamentId,
-        repository: getClientMatchRepository(),
+        matchRepository: getClientMatchRepository(),
+        teamRepository: getClientTeamRepository(),
+        lifecycleRepository: getClientMatchLifecycleRepository(),
       });
-      const initialResults = createEmptyManualResults({
-        tournamentId,
-        matchId: created.id,
-        teams: current.teams,
-      });
-      await getClientMatchResultRepository().bulkSaveResults(
-        tournamentId,
-        created.id,
-        initialResults,
-      );
+      const created = createdSnapshot.match;
       setMatches([...current.matches, created]);
       setTeams(current.teams);
       setActiveMatch(created);
@@ -110,12 +102,10 @@ export function MatchManagement({
       if (!latest) throw new Error("This match is no longer saved on this device.");
       let openedMatch = latest;
       if (latest.status === "FINALIZED") {
-        const reopened = await getClientMatchRepository().updateMatch(
+        const reopened = await getClientMatchLifecycleRepository().reopenMatch(
           tournamentId,
           latest.id,
-          { status: "DRAFT" },
         );
-        if (!reopened) throw new Error("This match is no longer saved on this device.");
         openedMatch = reopened;
         setMatches((saved) =>
           saved.map((candidate) =>

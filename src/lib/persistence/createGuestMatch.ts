@@ -1,23 +1,36 @@
+import { createEmptyManualResults } from "@/domain/matches/createEmptyManualResults";
 import type { TournamentMatch } from "@/domain/matches/types";
 
+import type {
+  MatchLifecycleRepository,
+  PersistedMatchSnapshot,
+} from "./matchLifecycleRepository";
 import type { MatchRepository } from "./matchRepository";
+import type { TeamRepository } from "./teamRepository";
 
-export interface CreateGuestMatchOptions {
+export interface CreateGuestMatchWithInitialResultsOptions {
   readonly tournamentId: string;
-  readonly repository: MatchRepository;
+  readonly matchRepository: MatchRepository;
+  readonly teamRepository: TeamRepository;
+  readonly lifecycleRepository: MatchLifecycleRepository;
   readonly name?: string;
   readonly createId?: () => string;
   readonly now?: () => string;
 }
 
-export async function createGuestMatch({
+export async function createGuestMatchWithInitialResults({
   tournamentId,
-  repository,
+  matchRepository,
+  teamRepository,
+  lifecycleRepository,
   name,
   createId = () => crypto.randomUUID(),
   now = () => new Date().toISOString(),
-}: CreateGuestMatchOptions): Promise<TournamentMatch> {
-  const existing = await repository.listMatchesByTournament(tournamentId);
+}: CreateGuestMatchWithInitialResultsOptions): Promise<PersistedMatchSnapshot> {
+  const [existing, teams] = await Promise.all([
+    matchRepository.listMatchesByTournament(tournamentId),
+    teamRepository.listTeamsByTournament(tournamentId),
+  ]);
   const nextMatchNumber =
     existing.reduce(
       (highest, match) => Math.max(highest, match.matchNumber),
@@ -25,8 +38,7 @@ export async function createGuestMatch({
     ) + 1;
   const normalizedName = name?.trim();
   const timestamp = now();
-
-  return repository.createMatch({
+  const match: TournamentMatch = {
     id: createId(),
     tournamentId,
     matchNumber: nextMatchNumber,
@@ -34,6 +46,14 @@ export async function createGuestMatch({
     status: "DRAFT",
     createdAt: timestamp,
     updatedAt: timestamp,
+  };
+  const results = createEmptyManualResults({
+    tournamentId,
+    matchId: match.id,
+    teams,
+    createId,
+    now: () => timestamp,
   });
-}
 
+  return lifecycleRepository.createMatchWithInitialResults(match, results);
+}

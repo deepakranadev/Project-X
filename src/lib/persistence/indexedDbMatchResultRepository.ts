@@ -1,6 +1,7 @@
 import {
   PARTICIPATION_STATUSES,
   type StoredMatchResult,
+  type TournamentMatch,
 } from "@/domain/matches/types";
 import type { Team } from "@/domain/teams/types";
 
@@ -20,11 +21,11 @@ import {
   requestToPromise,
 } from "./indexedDbUtils";
 import type { MatchResultRepository } from "./matchResultRepository";
-import type { TournamentMatch } from "@/domain/matches/types";
 
 export type MatchResultRepositoryErrorCode =
   | "TOURNAMENT_NOT_FOUND"
   | "MATCH_NOT_FOUND"
+  | "MATCH_NOT_DRAFT"
   | "RESULT_CONTEXT_MISMATCH"
   | "DUPLICATE_TEAM_RESULT"
   | "INVALID_TEAM_REFERENCE"
@@ -201,6 +202,13 @@ export class IndexedDbMatchResultRepository
       throw new MatchResultRepositoryError(
         "MATCH_NOT_FOUND",
         "This match does not belong to the selected tournament.",
+      );
+    }
+    if (match.status !== "DRAFT") {
+      await abortTransaction(transaction);
+      throw new MatchResultRepositoryError(
+        "MATCH_NOT_DRAFT",
+        "Reopen this finalized match before changing its results.",
       );
     }
 

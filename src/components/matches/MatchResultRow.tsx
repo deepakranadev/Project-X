@@ -9,6 +9,7 @@ interface MatchResultRowProps {
   readonly result: StoredMatchResult;
   readonly team: Team | undefined;
   readonly hasIssue: boolean;
+  readonly disabled: boolean;
   readonly onNumberChange: (
     field: "placement" | "kills",
     rawValue: string,
@@ -21,6 +22,7 @@ export function MatchResultRow({
   result,
   team,
   hasIssue,
+  disabled,
   onNumberChange,
   onToggleDnp,
   onInputKeyDown,
@@ -52,7 +54,7 @@ export function MatchResultRow({
         data-result-input="placement"
         aria-label={`Placement for ${teamName}`}
         aria-invalid={hasIssue}
-        disabled={isDnp || !team}
+        disabled={disabled || isDnp || !team}
         value={result.placement ?? ""}
         onChange={(event) =>
           onNumberChange("placement", event.currentTarget.value)
@@ -68,7 +70,7 @@ export function MatchResultRow({
         data-result-input="kills"
         aria-label={`Finishes for ${teamName}`}
         aria-invalid={hasIssue}
-        disabled={isDnp || !team}
+        disabled={disabled || isDnp || !team}
         value={result.kills ?? ""}
         onChange={(event) => onNumberChange("kills", event.currentTarget.value)}
         onKeyDown={onInputKeyDown}
@@ -82,7 +84,7 @@ export function MatchResultRow({
         type="button"
         aria-label={`${isDnp ? "Mark" : "Set"} ${teamName} ${isDnp ? "as played" : "as DNP"}`}
         aria-pressed={isDnp}
-        disabled={!team}
+        disabled={disabled || !team}
         onClick={onToggleDnp}
       >
         {isDnp ? "DNP" : "—"}
@@ -90,4 +92,3 @@ export function MatchResultRow({
     </div>
   );
 }
-

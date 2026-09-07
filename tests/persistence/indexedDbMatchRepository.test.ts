@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import type { TournamentMatch } from "../../src/domain/matches/types";
 import type { Tournament } from "../../src/domain/tournaments/types";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
-import { createGuestMatch } from "../../src/lib/persistence/createGuestMatch";
 import { GuestDatabase } from "../../src/lib/persistence/guestDatabase";
 import {
   IndexedDbMatchRepository,
@@ -54,18 +53,10 @@ async function setup(databaseName: string) {
 }
 
 describe("IndexedDbMatchRepository", () => {
-  it("creates and lists sequentially numbered matches in tournament context", async () => {
+  it("creates and lists numbered Draft matches in tournament context", async () => {
     const { database, matches } = await setup("match-create-list-test");
-    let id = 0;
-    const options = {
-      tournamentId: "tournament-one",
-      repository: matches,
-      createId: () => `match-${++id}`,
-      now: () => "2026-09-06T11:00:00.000Z",
-    };
-
-    await createGuestMatch(options);
-    await createGuestMatch(options);
+    await matches.createMatch(match("match-1"));
+    await matches.createMatch(match("match-2", { matchNumber: 2 }));
 
     await expect(matches.listMatchesByTournament("tournament-one")).resolves.toMatchObject([
       { id: "match-1", matchNumber: 1 },
@@ -88,7 +79,7 @@ describe("IndexedDbMatchRepository", () => {
     await database.close();
   });
 
-  it("updates editable fields while preserving identity, ownership, and createdAt", async () => {
+  it("updates details without permitting a generic status transition", async () => {
     const { database, matches } = await setup("match-update-test");
     await matches.createMatch(match("one"));
     const hostile = {
@@ -105,10 +96,22 @@ describe("IndexedDbMatchRepository", () => {
       id: "one",
       tournamentId: "tournament-one",
       name: "Erangel opener",
-      status: "FINALIZED",
+      status: "DRAFT",
       createdAt: "2026-09-06T10:00:00.000Z",
       updatedAt: "2026-09-06T12:00:00.000Z",
     });
+    await database.close();
+  });
+
+  it("rejects creating a match directly as finalized", async () => {
+    const { database, matches } = await setup("match-finalized-create-test");
+
+    await expect(
+      matches.createMatch(match("one", { status: "FINALIZED" })),
+    ).rejects.toMatchObject<Partial<MatchRepositoryError>>({
+      code: "INVALID_MATCH",
+    });
+    await expect(matches.getMatch("tournament-one", "one")).resolves.toBeNull();
     await database.close();
   });
 
@@ -134,4 +137,3 @@ describe("IndexedDbMatchRepository", () => {
     await database.close();
   });
 });
-

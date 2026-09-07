@@ -10,6 +10,7 @@ import type { Tournament } from "../../src/domain/tournaments/types";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
 import { finalizeGuestMatch } from "../../src/lib/persistence/finalizeGuestMatch";
 import { GuestDatabase } from "../../src/lib/persistence/guestDatabase";
+import { IndexedDbMatchLifecycleRepository } from "../../src/lib/persistence/indexedDbMatchLifecycleRepository";
 import { IndexedDbMatchRepository } from "../../src/lib/persistence/indexedDbMatchRepository";
 import { IndexedDbMatchResultRepository } from "../../src/lib/persistence/indexedDbMatchResultRepository";
 import { IndexedDbTeamRepository } from "../../src/lib/persistence/indexedDbTeamRepository";
@@ -83,6 +84,7 @@ describe("overall standings persistence workflow", () => {
     const teams = new IndexedDbTeamRepository({ database });
     const matches = new IndexedDbMatchRepository({ database });
     const results = new IndexedDbMatchResultRepository({ database });
+    const lifecycle = new IndexedDbMatchLifecycleRepository({ database });
     await tournaments.createTournament(tournament);
     await teams.bulkCreateTeams([
       team("one", 1),
@@ -100,9 +102,7 @@ describe("overall standings persistence workflow", () => {
       tournamentId: tournament.id,
       matchId: "match-one",
       results: finalizedRows,
-      matchRepository: matches,
-      matchResultRepository: results,
-      teamRepository: teams,
+      lifecycleRepository: lifecycle,
     });
     await results.saveDraftResults(tournament.id, "match-two", [
       result("match-two", "one", 2, 99),
@@ -151,7 +151,7 @@ describe("overall standings persistence workflow", () => {
       expect(stored).not.toHaveProperty("totalPoints");
     }
 
-    await matches.updateMatch(tournament.id, "match-one", { status: "DRAFT" });
+    await lifecycle.reopenMatch(tournament.id, "match-one");
     const reopened = await load();
     expect(reopened.finalizedMatchCount).toBe(0);
     expect(reopened.standings.every((row) => row.totalPoints === 0)).toBe(true);
@@ -163,9 +163,7 @@ describe("overall standings persistence workflow", () => {
         ...finalizedRows,
         result("match-one", "new-team", null, null, "DNP"),
       ],
-      matchRepository: matches,
-      matchResultRepository: results,
-      teamRepository: teams,
+      lifecycleRepository: lifecycle,
     });
     const restored = await load();
     expect(restored.finalizedMatchCount).toBe(1);
