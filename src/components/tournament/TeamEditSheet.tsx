@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 
+import { TeamDeletionError } from "@/domain/teams/errors";
 import type { Team } from "@/domain/teams/types";
 import {
   MAX_TEAM_NAME_LENGTH,
@@ -19,7 +20,7 @@ import {
 import type { PersistedImage } from "@/domain/tournaments/types";
 import { MAX_LOGO_FILE_SIZE_BYTES } from "@/domain/tournaments/validation";
 import { getClientTeamRepository } from "@/lib/persistence/clientTeamRepository";
-import { TeamRepositoryError } from "@/lib/persistence/indexedDbTeamRepository";
+import { TeamRepositoryError } from "@/lib/persistence/teamRepository";
 
 import { PersistedImagePreview } from "./PersistedImagePreview";
 
@@ -126,8 +127,14 @@ export function TeamEditSheet({
       await getClientTeamRepository().deleteTeam(team.tournamentId, team.id);
       await onDeleted();
       onClose();
-    } catch {
-      setErrors({ form: "This team could not be removed. Try again." });
+    } catch (error) {
+      setErrors({
+        form:
+          error instanceof TeamDeletionError &&
+          error.code === "TEAM_HAS_MATCH_HISTORY"
+            ? "This team can't be deleted because it already has match history."
+            : "This team could not be removed. Try again.",
+      });
       setIsSaving(false);
     }
   }

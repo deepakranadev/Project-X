@@ -1,5 +1,21 @@
 import type { Team, TeamUpdate } from "@/domain/teams/types";
 
+export type TeamRepositoryErrorCode =
+  | "TOURNAMENT_NOT_FOUND"
+  | "DUPLICATE_NAME"
+  | "SLOT_CONFLICT"
+  | "REORDER_MISMATCH";
+
+export class TeamRepositoryError extends Error {
+  readonly code: TeamRepositoryErrorCode;
+
+  constructor(code: TeamRepositoryErrorCode, message: string) {
+    super(message);
+    this.name = "TeamRepositoryError";
+    this.code = code;
+  }
+}
+
 export interface TeamRepository {
   createTeam(team: Team): Promise<Team>;
   bulkCreateTeams(teams: readonly Team[]): Promise<readonly Team[]>;

@@ -1,4 +1,5 @@
 import type { Team, TeamUpdate } from "@/domain/teams/types";
+import { TeamDeletionError } from "@/domain/teams/errors";
 import {
   assertValidTeamInput,
   normalizeTeamNameKey,
@@ -8,6 +9,10 @@ import {
 import {
   GuestDatabase,
   type GuestDatabaseOptions,
+  MATCH_RESULT_MATCH_TEAM_INDEX,
+  MATCH_RESULT_STORE,
+  MATCH_STORE,
+  MATCH_TOURNAMENT_INDEX,
   TEAM_STORE,
   TEAM_TOURNAMENT_INDEX,
   TOURNAMENT_STORE,
@@ -17,23 +22,9 @@ import {
   observeTransaction,
   requestToPromise,
 } from "./indexedDbUtils";
-import type { TeamRepository } from "./teamRepository";
+import { TeamRepositoryError, type TeamRepository } from "./teamRepository";
 
-export type TeamRepositoryErrorCode =
-  | "TOURNAMENT_NOT_FOUND"
-  | "DUPLICATE_NAME"
-  | "SLOT_CONFLICT"
-  | "REORDER_MISMATCH";
-
-export class TeamRepositoryError extends Error {
-  readonly code: TeamRepositoryErrorCode;
-
-  constructor(code: TeamRepositoryErrorCode, message: string) {
-    super(message);
-    this.name = "TeamRepositoryError";
-    this.code = code;
-  }
-}
+export { TeamRepositoryError } from "./teamRepository";
 
 export interface IndexedDbTeamRepositoryOptions extends GuestDatabaseOptions {
   readonly database?: GuestDatabase;
@@ -249,13 +240,38 @@ export class IndexedDbTeamRepository implements TeamRepository {
 
   async deleteTeam(tournamentId: string, teamId: string): Promise<void> {
     const database = await this.database.getConnection();
-    const transaction = database.transaction(TEAM_STORE, "readwrite");
+    const transaction = database.transaction(
+      [TEAM_STORE, MATCH_STORE, MATCH_RESULT_STORE],
+      "readwrite",
+    );
     const completion = observeTransaction(transaction);
     const store = transaction.objectStore(TEAM_STORE);
     const existing = await requestToPromise<Team | undefined>(store.get(teamId));
-    if (existing?.tournamentId === tournamentId) {
-      await requestToPromise(store.delete(teamId));
+    if (!existing || existing.tournamentId !== tournamentId) {
+      await completion;
+      return;
     }
+
+    const matchIds = await requestToPromise<IDBValidKey[]>(
+      transaction
+        .objectStore(MATCH_STORE)
+        .index(MATCH_TOURNAMENT_INDEX)
+        .getAllKeys(tournamentId),
+    );
+    const resultIndex = transaction
+      .objectStore(MATCH_RESULT_STORE)
+      .index(MATCH_RESULT_MATCH_TEAM_INDEX);
+    for (const matchId of matchIds) {
+      const resultKey = await requestToPromise<IDBValidKey | undefined>(
+        resultIndex.getKey([matchId, teamId]),
+      );
+      if (resultKey !== undefined) {
+        await abortTransaction(transaction);
+        throw new TeamDeletionError(tournamentId, teamId);
+      }
+    }
+
+    await requestToPromise(store.delete(teamId));
     await completion;
   }
 

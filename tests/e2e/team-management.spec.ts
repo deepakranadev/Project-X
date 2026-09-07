@@ -57,3 +57,45 @@ test("creates, edits, and reloads a six-team mobile roster", async ({ page }) =>
     await expect(page.getByLabel("Paste one team per line")).toBeVisible();
   }
 });
+
+test("shows the match-history guard and keeps the referenced team and Draft intact", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Create Points Table" }).click();
+  await page.getByLabel("Tournament name").fill("Reference Guard Cup");
+  await page.getByRole("button", { name: "Create Tournament" }).click();
+  await page
+    .getByLabel("Paste one team per line")
+    .fill("Team Soul\r\nGodLike Esports");
+  await page.getByRole("button", { name: "Add 2 Teams" }).click();
+
+  await page.getByRole("button", { name: "Create Match" }).click();
+  const matchEditor = page.locator("[data-match-entry]");
+  await expect(matchEditor.getByText("Draft", { exact: true })).toBeVisible();
+  await matchEditor.getByRole("button", { name: "Close" }).click();
+
+  await page.getByRole("button", { name: "Edit Team Soul" }).click();
+  const teamEditor = page.getByRole("dialog", { name: "Edit team" });
+  await teamEditor.getByRole("button", { name: "Remove team" }).click();
+  await teamEditor.getByRole("button", { name: "Yes, remove" }).click();
+
+  await expect(teamEditor.getByRole("alert")).toHaveText(
+    "This team can't be deleted because it already has match history.",
+  );
+  await expect(teamEditor).toBeVisible();
+  await teamEditor.getByRole("button", { name: "Close team editor" }).click();
+  await expect(page.getByRole("button", { name: "Edit Team Soul" })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "TEAMS" }).getByRole("listitem"),
+  ).toHaveCount(2);
+
+  const matchRow = page.getByRole("listitem").filter({
+    has: page.getByRole("button", { name: "Open Match 1" }),
+  });
+  await expect(matchRow).toContainText("Draft");
+  await page.getByRole("button", { name: "Open Match 1" }).click();
+  await expect(
+    page.locator('[data-match-entry]').getByText("Team Soul", { exact: true }),
+  ).toBeVisible();
+});
