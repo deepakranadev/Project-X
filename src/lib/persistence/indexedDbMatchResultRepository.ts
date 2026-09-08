@@ -1,9 +1,7 @@
 import {
   PARTICIPATION_STATUSES,
   type StoredMatchResult,
-  type TournamentMatch,
 } from "@/domain/matches/types";
-import type { Team } from "@/domain/teams/types";
 
 import {
   GuestDatabase,
@@ -20,6 +18,13 @@ import {
   observeTransaction,
   requestToPromise,
 } from "./indexedDbUtils";
+import {
+  parseMatchRecord,
+  parseMatchResultRecord,
+  parseTeamRecord,
+  parseTournamentRecord,
+  tournamentRecordToDomain,
+} from "./parseStoredRecords";
 import type { MatchResultRepository } from "./matchResultRepository";
 
 export type MatchResultRepositoryErrorCode =
@@ -118,21 +123,26 @@ export class IndexedDbMatchResultRepository
       "readonly",
     );
     const completion = observeTransaction(transaction);
-    const match = await requestToPromise<TournamentMatch | undefined>(
+    const storedMatch = await requestToPromise<unknown>(
       transaction.objectStore(MATCH_STORE).get(matchId),
     );
-    if (!match || match.tournamentId !== tournamentId) {
+    if (storedMatch === undefined) {
       await completion;
       return [];
     }
-    const results = await requestToPromise<StoredMatchResult[]>(
+    const match = parseMatchRecord(storedMatch);
+    if (match.tournamentId !== tournamentId) {
+      await completion;
+      return [];
+    }
+    const storedResults = await requestToPromise<unknown[]>(
       transaction
         .objectStore(MATCH_RESULT_STORE)
         .index(MATCH_RESULT_MATCH_INDEX)
         .getAll(matchId),
     );
     await completion;
-    return results;
+    return storedResults.map(parseMatchResultRecord);
   }
 
   saveDraftResults(
@@ -184,20 +194,29 @@ export class IndexedDbMatchResultRepository
       "readwrite",
     );
     const completion = observeTransaction(transaction);
-    const tournament = await requestToPromise<unknown>(
+    const storedTournament = await requestToPromise<unknown>(
       transaction.objectStore(TOURNAMENT_STORE).get(tournamentId),
     );
-    if (!tournament) {
+    if (storedTournament === undefined) {
       await abortTransaction(transaction);
       throw new MatchResultRepositoryError(
         "TOURNAMENT_NOT_FOUND",
         "This tournament no longer exists on this device.",
       );
     }
-    const match = await requestToPromise<TournamentMatch | undefined>(
+    tournamentRecordToDomain(parseTournamentRecord(storedTournament));
+    const storedMatch = await requestToPromise<unknown>(
       transaction.objectStore(MATCH_STORE).get(matchId),
     );
-    if (!match || match.tournamentId !== tournamentId) {
+    if (storedMatch === undefined) {
+      await abortTransaction(transaction);
+      throw new MatchResultRepositoryError(
+        "MATCH_NOT_FOUND",
+        "This match does not belong to the selected tournament.",
+      );
+    }
+    const match = parseMatchRecord(storedMatch);
+    if (match.tournamentId !== tournamentId) {
       await abortTransaction(transaction);
       throw new MatchResultRepositoryError(
         "MATCH_NOT_FOUND",
@@ -214,8 +233,16 @@ export class IndexedDbMatchResultRepository
 
     const teamStore = transaction.objectStore(TEAM_STORE);
     for (const teamId of teamIds) {
-      const team = await requestToPromise<Team | undefined>(teamStore.get(teamId));
-      if (!team || team.tournamentId !== tournamentId) {
+      const storedTeam = await requestToPromise<unknown>(teamStore.get(teamId));
+      if (storedTeam === undefined) {
+        await abortTransaction(transaction);
+        throw new MatchResultRepositoryError(
+          "INVALID_TEAM_REFERENCE",
+          `Team "${teamId}" does not belong to this tournament.`,
+        );
+      }
+      const team = parseTeamRecord(storedTeam);
+      if (team.tournamentId !== tournamentId) {
         await abortTransaction(transaction);
         throw new MatchResultRepositoryError(
           "INVALID_TEAM_REFERENCE",
@@ -228,14 +255,22 @@ export class IndexedDbMatchResultRepository
     const timestamp = this.now();
     const saved: StoredMatchResult[] = [];
     for (const candidate of results) {
-      const existing = await requestToPromise<StoredMatchResult | undefined>(
+      const storedExisting = await requestToPromise<unknown>(
         resultStore
           .index(MATCH_RESULT_MATCH_TEAM_INDEX)
           .get([matchId, candidate.teamId]),
       );
-      const identityOwner = await requestToPromise<
-        StoredMatchResult | undefined
-      >(resultStore.get(candidate.id));
+      const existing =
+        storedExisting === undefined
+          ? undefined
+          : parseMatchResultRecord(storedExisting);
+      const storedIdentityOwner = await requestToPromise<unknown>(
+        resultStore.get(candidate.id),
+      );
+      const identityOwner =
+        storedIdentityOwner === undefined
+          ? undefined
+          : parseMatchResultRecord(storedIdentityOwner);
       if (
         !existing &&
         identityOwner &&
@@ -274,10 +309,15 @@ export class IndexedDbMatchResultRepository
       "readwrite",
     );
     const completion = observeTransaction(transaction);
-    const match = await requestToPromise<TournamentMatch | undefined>(
+    const storedMatch = await requestToPromise<unknown>(
       transaction.objectStore(MATCH_STORE).get(matchId),
     );
-    if (!match || match.tournamentId !== tournamentId) {
+    if (storedMatch === undefined) {
+      await completion;
+      return;
+    }
+    const match = parseMatchRecord(storedMatch);
+    if (match.tournamentId !== tournamentId) {
       await completion;
       return;
     }

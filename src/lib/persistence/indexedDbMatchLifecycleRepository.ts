@@ -23,6 +23,13 @@ import {
   observeTransaction,
   requestToPromise,
 } from "./indexedDbUtils";
+import {
+  parseMatchRecord,
+  parseMatchResultRecord,
+  parseTeamRecord,
+  parseTournamentRecord,
+  tournamentRecordToDomain,
+} from "./parseStoredRecords";
 import type {
   FinalizeMatchResult,
   MatchLifecycleRepository,
@@ -171,9 +178,10 @@ async function writeAuthoritativeResults(
   timestamp: string,
 ): Promise<readonly StoredMatchResult[]> {
   const store = transaction.objectStore(MATCH_RESULT_STORE);
-  const existingResults = await requestToPromise<StoredMatchResult[]>(
+  const storedExistingResults = await requestToPromise<unknown[]>(
     store.index(MATCH_RESULT_MATCH_INDEX).getAll(matchId),
   );
+  const existingResults = storedExistingResults.map(parseMatchResultRecord);
   const existingByTeam = new Map(
     existingResults.map((result) => [result.teamId, result]),
   );
@@ -186,9 +194,13 @@ async function writeAuthoritativeResults(
   for (const candidate of results) {
     const existing = existingByTeam.get(candidate.teamId);
     const resultId = existing?.id ?? candidate.id;
-    const identityOwner = await requestToPromise<StoredMatchResult | undefined>(
+    const storedIdentityOwner = await requestToPromise<unknown>(
       store.get(resultId),
     );
+    const identityOwner =
+      storedIdentityOwner === undefined
+        ? undefined
+        : parseMatchResultRecord(storedIdentityOwner);
     if (identityOwner) {
       await abortTransaction(transaction);
       throw new MatchLifecycleRepositoryError(
@@ -251,15 +263,16 @@ export class IndexedDbMatchLifecycleRepository
     const completion = observeTransaction(transaction);
 
     try {
-      const tournament = await requestToPromise<unknown>(
+      const storedTournament = await requestToPromise<unknown>(
         transaction.objectStore(TOURNAMENT_STORE).get(match.tournamentId),
       );
-      if (!tournament) {
+      if (storedTournament === undefined) {
         throw new MatchLifecycleRepositoryError(
           "TOURNAMENT_NOT_FOUND",
           "This tournament no longer exists on this device.",
         );
       }
+      tournamentRecordToDomain(parseTournamentRecord(storedTournament));
 
       const matchStore = transaction.objectStore(MATCH_STORE);
       const duplicateNumber = await requestToPromise<IDBValidKey | undefined>(
@@ -274,12 +287,13 @@ export class IndexedDbMatchLifecycleRepository
         );
       }
 
-      const teams = await requestToPromise<Team[]>(
+      const storedTeams = await requestToPromise<unknown[]>(
         transaction
           .objectStore(TEAM_STORE)
           .index(TEAM_TOURNAMENT_INDEX)
           .getAll(match.tournamentId),
       );
+      const teams = storedTeams.map(parseTeamRecord);
       assertTeamReferences(match.tournamentId, results, teams);
       const resultTeamIds = new Set(results.map((result) => result.teamId));
       if (
@@ -330,20 +344,28 @@ export class IndexedDbMatchLifecycleRepository
     const completion = observeTransaction(transaction);
 
     try {
-      const tournament = await requestToPromise<unknown>(
+      const storedTournament = await requestToPromise<unknown>(
         transaction.objectStore(TOURNAMENT_STORE).get(command.tournamentId),
       );
-      if (!tournament) {
+      if (storedTournament === undefined) {
         throw new MatchLifecycleRepositoryError(
           "TOURNAMENT_NOT_FOUND",
           "This tournament no longer exists on this device.",
         );
       }
+      tournamentRecordToDomain(parseTournamentRecord(storedTournament));
       const matchStore = transaction.objectStore(MATCH_STORE);
-      const match = await requestToPromise<TournamentMatch | undefined>(
+      const storedMatch = await requestToPromise<unknown>(
         matchStore.get(command.matchId),
       );
-      if (!match || match.tournamentId !== command.tournamentId) {
+      if (storedMatch === undefined) {
+        throw new MatchLifecycleRepositoryError(
+          "MATCH_NOT_FOUND",
+          "This match does not belong to the selected tournament.",
+        );
+      }
+      const match = parseMatchRecord(storedMatch);
+      if (match.tournamentId !== command.tournamentId) {
         throw new MatchLifecycleRepositoryError(
           "MATCH_NOT_FOUND",
           "This match does not belong to the selected tournament.",
@@ -356,12 +378,13 @@ export class IndexedDbMatchLifecycleRepository
         );
       }
 
-      const teams = await requestToPromise<Team[]>(
+      const storedTeams = await requestToPromise<unknown[]>(
         transaction
           .objectStore(TEAM_STORE)
           .index(TEAM_TOURNAMENT_INDEX)
           .getAll(command.tournamentId),
       );
+      const teams = storedTeams.map(parseTeamRecord);
       assertTeamReferences(command.tournamentId, command.results, teams);
       const timestamp = this.now();
       const savedResults = await writeAuthoritativeResults(
@@ -401,20 +424,28 @@ export class IndexedDbMatchLifecycleRepository
     const completion = observeTransaction(transaction);
 
     try {
-      const tournament = await requestToPromise<unknown>(
+      const storedTournament = await requestToPromise<unknown>(
         transaction.objectStore(TOURNAMENT_STORE).get(command.tournamentId),
       );
-      if (!tournament) {
+      if (storedTournament === undefined) {
         throw new MatchLifecycleRepositoryError(
           "TOURNAMENT_NOT_FOUND",
           "This tournament no longer exists on this device.",
         );
       }
+      tournamentRecordToDomain(parseTournamentRecord(storedTournament));
       const matchStore = transaction.objectStore(MATCH_STORE);
-      const match = await requestToPromise<TournamentMatch | undefined>(
+      const storedMatch = await requestToPromise<unknown>(
         matchStore.get(command.matchId),
       );
-      if (!match || match.tournamentId !== command.tournamentId) {
+      if (storedMatch === undefined) {
+        throw new MatchLifecycleRepositoryError(
+          "MATCH_NOT_FOUND",
+          "This match does not belong to the selected tournament.",
+        );
+      }
+      const match = parseMatchRecord(storedMatch);
+      if (match.tournamentId !== command.tournamentId) {
         throw new MatchLifecycleRepositoryError(
           "MATCH_NOT_FOUND",
           "This match does not belong to the selected tournament.",
@@ -427,12 +458,13 @@ export class IndexedDbMatchLifecycleRepository
         );
       }
 
-      const teams = await requestToPromise<Team[]>(
+      const storedTeams = await requestToPromise<unknown[]>(
         transaction
           .objectStore(TEAM_STORE)
           .index(TEAM_TOURNAMENT_INDEX)
           .getAll(command.tournamentId),
       );
+      const teams = storedTeams.map(parseTeamRecord);
       const validation = validateManualMatchResults(command.results, {
         tournamentId: command.tournamentId,
         matchId: command.matchId,
@@ -475,10 +507,17 @@ export class IndexedDbMatchLifecycleRepository
     const store = transaction.objectStore(MATCH_STORE);
 
     try {
-      const match = await requestToPromise<TournamentMatch | undefined>(
+      const storedMatch = await requestToPromise<unknown>(
         store.get(matchId),
       );
-      if (!match || match.tournamentId !== tournamentId) {
+      if (storedMatch === undefined) {
+        throw new MatchLifecycleRepositoryError(
+          "MATCH_NOT_FOUND",
+          "This match does not belong to the selected tournament.",
+        );
+      }
+      const match = parseMatchRecord(storedMatch);
+      if (match.tournamentId !== tournamentId) {
         throw new MatchLifecycleRepositoryError(
           "MATCH_NOT_FOUND",
           "This match does not belong to the selected tournament.",

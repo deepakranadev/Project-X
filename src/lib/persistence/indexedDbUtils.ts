@@ -1,8 +1,10 @@
+import { classifyPersistenceFailure } from "./persistenceErrors";
+
 export function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () =>
-      reject(request.error ?? new Error("IndexedDB request failed."));
+      reject(classifyPersistenceFailure(request.error, "REQUEST_FAILED"));
   });
 }
 
@@ -12,17 +14,13 @@ function transactionToPromise(transaction: IDBTransaction): Promise<void> {
     transaction.addEventListener(
       "error",
       () =>
-        reject(
-          transaction.error ?? new Error("IndexedDB transaction failed."),
-        ),
+        reject(classifyPersistenceFailure(transaction.error, "TRANSACTION_FAILED")),
       { once: true },
     );
     transaction.addEventListener(
       "abort",
       () =>
-        reject(
-          transaction.error ?? new Error("IndexedDB transaction aborted."),
-        ),
+        reject(classifyPersistenceFailure(transaction.error, "TRANSACTION_FAILED")),
       { once: true },
     );
   });

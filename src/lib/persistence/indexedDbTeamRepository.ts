@@ -22,6 +22,11 @@ import {
   observeTransaction,
   requestToPromise,
 } from "./indexedDbUtils";
+import {
+  parseTeamRecord,
+  parseTournamentRecord,
+  tournamentRecordToDomain,
+} from "./parseStoredRecords";
 import { TeamRepositoryError, type TeamRepository } from "./teamRepository";
 
 export { TeamRepositoryError } from "./teamRepository";
@@ -135,22 +140,24 @@ export class IndexedDbTeamRepository implements TeamRepository {
       "readwrite",
     );
     const completion = observeTransaction(transaction);
-    const tournament = await requestToPromise<unknown>(
+    const storedTournament = await requestToPromise<unknown>(
       transaction.objectStore(TOURNAMENT_STORE).get(tournamentId),
     );
 
-    if (!tournament) {
+    if (storedTournament === undefined) {
       await abortTransaction(transaction);
       throw new TeamRepositoryError(
         "TOURNAMENT_NOT_FOUND",
         "This tournament no longer exists on this device.",
       );
     }
+    tournamentRecordToDomain(parseTournamentRecord(storedTournament));
 
     const store = transaction.objectStore(TEAM_STORE);
-    const existing = await requestToPromise<Team[]>(
+    const storedTeams = await requestToPromise<unknown[]>(
       store.index(TEAM_TOURNAMENT_INDEX).getAll(tournamentId),
     );
+    const existing = storedTeams.map(parseTeamRecord);
     const checked: Team[] = [...existing];
 
     try {
@@ -174,10 +181,11 @@ export class IndexedDbTeamRepository implements TeamRepository {
     const database = await this.database.getConnection();
     const transaction = database.transaction(TEAM_STORE, "readonly");
     const completion = observeTransaction(transaction);
-    const team = await requestToPromise<Team | undefined>(
+    const stored = await requestToPromise<unknown>(
       transaction.objectStore(TEAM_STORE).get(teamId),
     );
     await completion;
+    const team = stored === undefined ? undefined : parseTeamRecord(stored);
     return team?.tournamentId === tournamentId ? team : null;
   }
 
@@ -187,13 +195,14 @@ export class IndexedDbTeamRepository implements TeamRepository {
     const database = await this.database.getConnection();
     const transaction = database.transaction(TEAM_STORE, "readonly");
     const completion = observeTransaction(transaction);
-    const teams = await requestToPromise<Team[]>(
+    const storedTeams = await requestToPromise<unknown[]>(
       transaction
         .objectStore(TEAM_STORE)
         .index(TEAM_TOURNAMENT_INDEX)
         .getAll(tournamentId),
     );
     await completion;
+    const teams = storedTeams.map(parseTeamRecord);
     return teams.sort(compareTeams);
   }
 
@@ -206,9 +215,14 @@ export class IndexedDbTeamRepository implements TeamRepository {
     const transaction = database.transaction(TEAM_STORE, "readwrite");
     const completion = observeTransaction(transaction);
     const store = transaction.objectStore(TEAM_STORE);
-    const existing = await requestToPromise<Team | undefined>(store.get(teamId));
+    const stored = await requestToPromise<unknown>(store.get(teamId));
 
-    if (!existing || existing.tournamentId !== tournamentId) {
+    if (stored === undefined) {
+      await completion;
+      return null;
+    }
+    const existing = parseTeamRecord(stored);
+    if (existing.tournamentId !== tournamentId) {
       await completion;
       return null;
     }
@@ -222,9 +236,10 @@ export class IndexedDbTeamRepository implements TeamRepository {
       updatedAt: this.now(),
     });
     assertValidTeamInput(updated);
-    const roster = await requestToPromise<Team[]>(
+    const storedRoster = await requestToPromise<unknown[]>(
       store.index(TEAM_TOURNAMENT_INDEX).getAll(tournamentId),
     );
+    const roster = storedRoster.map(parseTeamRecord);
 
     try {
       assertUniqueTeam(updated, roster, existing.id);
@@ -246,8 +261,13 @@ export class IndexedDbTeamRepository implements TeamRepository {
     );
     const completion = observeTransaction(transaction);
     const store = transaction.objectStore(TEAM_STORE);
-    const existing = await requestToPromise<Team | undefined>(store.get(teamId));
-    if (!existing || existing.tournamentId !== tournamentId) {
+    const stored = await requestToPromise<unknown>(store.get(teamId));
+    if (stored === undefined) {
+      await completion;
+      return;
+    }
+    const existing = parseTeamRecord(stored);
+    if (existing.tournamentId !== tournamentId) {
       await completion;
       return;
     }
@@ -283,9 +303,10 @@ export class IndexedDbTeamRepository implements TeamRepository {
     const transaction = database.transaction(TEAM_STORE, "readwrite");
     const completion = observeTransaction(transaction);
     const store = transaction.objectStore(TEAM_STORE);
-    const roster = await requestToPromise<Team[]>(
+    const storedRoster = await requestToPromise<unknown[]>(
       store.index(TEAM_TOURNAMENT_INDEX).getAll(tournamentId),
     );
+    const roster = storedRoster.map(parseTeamRecord);
     const requestedIds = new Set(orderedTeamIds);
 
     if (

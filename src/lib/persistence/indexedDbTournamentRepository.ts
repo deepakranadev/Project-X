@@ -2,12 +2,8 @@ import type {
   Tournament,
   TournamentUpdate,
 } from "@/domain/tournaments/types";
-import type { ScoringConfig } from "@/domain/scoring/types";
 import { assertValidScoringConfig } from "@/domain/scoring/validateScoringConfig";
-import {
-  copyScoringConfig,
-  createBgmiStandardScoringConfig,
-} from "@/domain/tournaments/scoringPresets";
+import { copyScoringConfig } from "@/domain/tournaments/scoringPresets";
 
 import {
   GuestDatabase,
@@ -21,6 +17,10 @@ import {
   TOURNAMENT_STORE,
 } from "./guestDatabase";
 import { observeTransaction, requestToPromise } from "./indexedDbUtils";
+import {
+  parseTournamentRecord,
+  tournamentRecordToDomain,
+} from "./parseStoredRecords";
 import type { TournamentRepository } from "./tournamentRepository";
 
 export interface IndexedDbTournamentRepositoryOptions
@@ -33,20 +33,11 @@ function defaultNow(): string {
   return new Date().toISOString();
 }
 
-type StoredTournament = Omit<Tournament, "scoringConfig"> & {
-  readonly scoringConfig?: unknown;
-};
-
-function normalizeStoredTournament(stored: StoredTournament): Tournament {
-  const scoringConfig =
-    stored.scoringConfig === undefined
-      ? createBgmiStandardScoringConfig()
-      : stored.scoringConfig;
-  assertValidScoringConfig(scoringConfig);
-
+function prepareTournamentForWrite(tournament: Tournament): Tournament {
+  assertValidScoringConfig(tournament.scoringConfig);
   return {
-    ...stored,
-    scoringConfig: copyScoringConfig(scoringConfig as ScoringConfig),
+    ...tournament,
+    scoringConfig: copyScoringConfig(tournament.scoringConfig),
   };
 }
 
@@ -65,7 +56,7 @@ export class IndexedDbTournamentRepository implements TournamentRepository {
   }
 
   async createTournament(tournament: Tournament): Promise<Tournament> {
-    const normalized = normalizeStoredTournament(tournament);
+    const normalized = prepareTournamentForWrite(tournament);
     const database = await this.database.getConnection();
     const transaction = database.transaction(TOURNAMENT_STORE, "readwrite");
     const completion = observeTransaction(transaction);
@@ -80,11 +71,13 @@ export class IndexedDbTournamentRepository implements TournamentRepository {
     const database = await this.database.getConnection();
     const transaction = database.transaction(TOURNAMENT_STORE, "readonly");
     const completion = observeTransaction(transaction);
-    const tournament = await requestToPromise<StoredTournament | undefined>(
+    const stored = await requestToPromise<unknown>(
       transaction.objectStore(TOURNAMENT_STORE).get(id),
     );
     await completion;
-    return tournament ? normalizeStoredTournament(tournament) : null;
+    return stored === undefined
+      ? null
+      : tournamentRecordToDomain(parseTournamentRecord(stored));
   }
 
   async updateTournament(
@@ -95,21 +88,19 @@ export class IndexedDbTournamentRepository implements TournamentRepository {
     const transaction = database.transaction(TOURNAMENT_STORE, "readwrite");
     const completion = observeTransaction(transaction);
     const store = transaction.objectStore(TOURNAMENT_STORE);
-    const existing = await requestToPromise<StoredTournament | undefined>(
-      store.get(id),
-    );
+    const stored = await requestToPromise<unknown>(store.get(id));
 
-    if (!existing) {
+    if (stored === undefined) {
       await completion;
       return null;
     }
 
-    const normalizedExisting = normalizeStoredTournament(existing);
-    const updated = normalizeStoredTournament({
-      ...normalizedExisting,
+    const existing = tournamentRecordToDomain(parseTournamentRecord(stored));
+    const updated = prepareTournamentForWrite({
+      ...existing,
       ...updates,
-      id: normalizedExisting.id,
-      createdAt: normalizedExisting.createdAt,
+      id: existing.id,
+      createdAt: existing.createdAt,
       updatedAt: this.now(),
     });
 
@@ -122,12 +113,14 @@ export class IndexedDbTournamentRepository implements TournamentRepository {
     const database = await this.database.getConnection();
     const transaction = database.transaction(TOURNAMENT_STORE, "readonly");
     const completion = observeTransaction(transaction);
-    const storedTournaments = await requestToPromise<StoredTournament[]>(
+    const storedTournaments = await requestToPromise<unknown[]>(
       transaction.objectStore(TOURNAMENT_STORE).getAll(),
     );
     await completion;
 
-    const tournaments = storedTournaments.map(normalizeStoredTournament);
+    const tournaments = storedTournaments.map((stored) =>
+      tournamentRecordToDomain(parseTournamentRecord(stored)),
+    );
 
     return tournaments.sort((left, right) => {
       const updatedComparison = right.updatedAt.localeCompare(left.updatedAt);

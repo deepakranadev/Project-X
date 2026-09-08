@@ -19,6 +19,11 @@ import {
   observeTransaction,
   requestToPromise,
 } from "./indexedDbUtils";
+import {
+  parseMatchRecord,
+  parseTournamentRecord,
+  tournamentRecordToDomain,
+} from "./parseStoredRecords";
 import type { MatchRepository } from "./matchRepository";
 
 export type MatchRepositoryErrorCode =
@@ -104,16 +109,17 @@ export class IndexedDbMatchRepository implements MatchRepository {
       "readwrite",
     );
     const completion = observeTransaction(transaction);
-    const tournament = await requestToPromise<unknown>(
+    const storedTournament = await requestToPromise<unknown>(
       transaction.objectStore(TOURNAMENT_STORE).get(normalized.tournamentId),
     );
-    if (!tournament) {
+    if (storedTournament === undefined) {
       await abortTransaction(transaction);
       throw new MatchRepositoryError(
         "TOURNAMENT_NOT_FOUND",
         "This tournament no longer exists on this device.",
       );
     }
+    tournamentRecordToDomain(parseTournamentRecord(storedTournament));
 
     const store = transaction.objectStore(MATCH_STORE);
     const numberKey = [normalized.tournamentId, normalized.matchNumber];
@@ -140,11 +146,12 @@ export class IndexedDbMatchRepository implements MatchRepository {
     const database = await this.database.getConnection();
     const transaction = database.transaction(MATCH_STORE, "readonly");
     const completion = observeTransaction(transaction);
-    const match = await requestToPromise<TournamentMatch | undefined>(
+    const stored = await requestToPromise<unknown>(
       transaction.objectStore(MATCH_STORE).get(matchId),
     );
     await completion;
-    return match?.tournamentId === tournamentId ? normalizeMatch(match) : null;
+    const match = stored === undefined ? undefined : parseMatchRecord(stored);
+    return match?.tournamentId === tournamentId ? match : null;
   }
 
   async listMatchesByTournament(
@@ -153,17 +160,19 @@ export class IndexedDbMatchRepository implements MatchRepository {
     const database = await this.database.getConnection();
     const transaction = database.transaction(MATCH_STORE, "readonly");
     const completion = observeTransaction(transaction);
-    const matches = await requestToPromise<TournamentMatch[]>(
+    const storedMatches = await requestToPromise<unknown[]>(
       transaction
         .objectStore(MATCH_STORE)
         .index(MATCH_TOURNAMENT_INDEX)
         .getAll(tournamentId),
     );
     await completion;
-    return matches.map(normalizeMatch).sort((left, right) => {
+    return storedMatches
+      .map(parseMatchRecord)
+      .sort((left, right) => {
       const numberComparison = left.matchNumber - right.matchNumber;
       return numberComparison || left.createdAt.localeCompare(right.createdAt);
-    });
+      });
   }
 
   async updateMatch(
@@ -175,10 +184,13 @@ export class IndexedDbMatchRepository implements MatchRepository {
     const transaction = database.transaction(MATCH_STORE, "readwrite");
     const completion = observeTransaction(transaction);
     const store = transaction.objectStore(MATCH_STORE);
-    const existing = await requestToPromise<TournamentMatch | undefined>(
-      store.get(matchId),
-    );
-    if (!existing || existing.tournamentId !== tournamentId) {
+    const stored = await requestToPromise<unknown>(store.get(matchId));
+    if (stored === undefined) {
+      await completion;
+      return null;
+    }
+    const existing = parseMatchRecord(stored);
+    if (existing.tournamentId !== tournamentId) {
       await completion;
       return null;
     }
@@ -222,10 +234,13 @@ export class IndexedDbMatchRepository implements MatchRepository {
     );
     const completion = observeTransaction(transaction);
     const matchStore = transaction.objectStore(MATCH_STORE);
-    const existing = await requestToPromise<TournamentMatch | undefined>(
-      matchStore.get(matchId),
-    );
-    if (!existing || existing.tournamentId !== tournamentId) {
+    const stored = await requestToPromise<unknown>(matchStore.get(matchId));
+    if (stored === undefined) {
+      await completion;
+      return;
+    }
+    const existing = parseMatchRecord(stored);
+    if (existing.tournamentId !== tournamentId) {
       await completion;
       return;
     }

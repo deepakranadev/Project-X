@@ -1,5 +1,10 @@
 import { createBgmiStandardScoringConfig } from "@/domain/tournaments/scoringPresets";
 
+import {
+  classifyPersistenceFailure,
+  PersistenceError,
+} from "./persistenceErrors";
+
 export const DEFAULT_GUEST_DATABASE_NAME = "pt-forge-guest";
 export const GUEST_DATABASE_VERSION = 4;
 export const TOURNAMENT_STORE = "tournaments";
@@ -18,6 +23,10 @@ export interface GuestDatabaseOptions {
   readonly indexedDbFactory?: IDBFactory;
 }
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function addDefaultScoringConfigToLegacyTournaments(
   tournamentStore: IDBObjectStore,
 ): void {
@@ -26,10 +35,11 @@ function addDefaultScoringConfigToLegacyTournaments(
     const cursor = cursorRequest.result;
     if (!cursor) return;
 
-    const stored = cursor.value as Record<string, unknown>;
+    const stored: unknown = cursor.value;
     if (
-      !Object.hasOwn(stored, "scoringConfig") ||
-      stored.scoringConfig === undefined
+      isObjectRecord(stored) &&
+      (!Object.hasOwn(stored, "scoringConfig") ||
+        stored.scoringConfig === undefined)
     ) {
       cursor.update({
         ...stored,
@@ -78,10 +88,17 @@ export class GuestDatabase {
 
   private openDatabase(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
+      let settled = false;
       const request = this.factory.open(
         this.databaseName,
         GUEST_DATABASE_VERSION,
       );
+
+      const rejectOnce = (error: unknown): void => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      };
 
       request.onupgradeneeded = (event) => {
         const database = request.result;
@@ -162,6 +179,11 @@ export class GuestDatabase {
       };
       request.onsuccess = () => {
         const database = request.result;
+        if (settled) {
+          database.close();
+          return;
+        }
+        settled = true;
         database.onversionchange = () => {
           database.close();
           this.connection = null;
@@ -169,10 +191,13 @@ export class GuestDatabase {
         resolve(database);
       };
       request.onerror = () =>
-        reject(request.error ?? new Error("Unable to open IndexedDB."));
+        rejectOnce(
+          classifyPersistenceFailure(request.error, "DATABASE_OPEN_FAILED"),
+        );
       request.onblocked = () =>
-        reject(
-          new Error(
+        rejectOnce(
+          new PersistenceError(
+            "DATABASE_OPEN_BLOCKED",
             "Guest storage is open in another tab. Close that tab and try again.",
           ),
         );
