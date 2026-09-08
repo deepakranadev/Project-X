@@ -8,20 +8,97 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-## PT Forge project engineering rules
+## CROSS-AGENT STARTUP INSTRUCTION
 
-These rules come from `Documentation/MASTER_SPEC.md` and must be preserved alongside any framework-generated guidance.
+Before implementation work, read in this order:
 
-- Implement only the explicitly approved task. Do not begin later tasks or add merely useful-looking features.
-- Optimize for speed, correctness, mobile usability, reliable scoring, and a short time-to-points-table. Prefer the simpler reliable design when priorities conflict.
-- BGMI is the only currently supported game. Do not expose future games without explicit approval.
-- Use TypeScript strict mode, avoid undocumented `any`, keep business logic outside UI components, and prefer small focused modules.
-- Keep IndexedDB and other data access behind typed repository/service boundaries. Do not scatter direct database calls through React components.
-- Never change scoring behavior without updating and running the scoring tests. Keep scoring deterministic, pure, configurable, and separate from UI, persistence, AI, and rendering.
-- Never hardcode scoring values into UI components or duplicate scoring algorithms across screens.
-- Never allow AI output to finalize results or standings, expose provider secrets to the client, or replace deterministic logic with AI.
-- Never hide or silently discard data inconsistencies. Surface actionable errors to the organizer.
-- Never delete working tests merely to make checks pass.
-- Prefer mobile simplicity over desktop complexity and correct results over visual spectacle.
-- Treat raw results plus scoring rules as the source of truth; do not retain stale aggregate standings.
-- For each significant task: inspect first, state the intended change, implement only the approved scope, add tests, run tests/typecheck/lint/build as requested, report exact changes and limitations, then stop.
+1. AGENTS.md
+2. Documentation/MASTER_SPEC.md
+3. Documentation/PROJECT_CONTEXT.md
+4. Documentation/CURRENT_STATE.md
+5. Documentation/ACTIVE_TASK.md
+6. Documentation/HANDOFF.md
+7. Git status/diff/log
+
+## DURABLE ENGINEERING RULES
+
+### PRIORITY ORDER
+1. correctness
+2. data integrity
+3. TTPT / processing latency
+4. visual polish
+
+### SOURCE OF TRUTH
+- repository state and code are authoritative
+- inspect Git before editing
+- never assume another model's chat history is available
+- documentation assists understanding but does not override code/tests
+
+### SCOPE
+- work on only the explicitly authorized stage/task
+- never start the next stage automatically
+- no speculative feature implementation
+- do not mix unrelated cleanup with the active task
+
+### GIT
+- run `git status` before editing
+- never reset, restore, stash, clean, commit, merge, or push unless the active task explicitly authorizes it
+- when taking over unfinished work, inspect the existing diff before modifying anything
+- never discard another agent's uncommitted work without explicit user approval
+
+### TESTING
+- never weaken/delete tests merely to make them pass
+- correctness regressions must be fixed rather than hidden
+- report commands actually executed
+- never claim a test passed if it was not run
+
+### ARCHITECTURE
+- domain must remain pure and browser-neutral
+- screens are composition boundaries
+- features own workflows/UI
+- infrastructure owns browser/persistence implementation
+- repository contracts must not expose IndexedDB internals
+- shared code should exist only for genuine reuse
+- production file decomposition must be responsibility-based
+- do not game file-size targets
+
+### PERSISTENCE
+- IndexedDB/runtime storage is untrusted input
+- malformed stored competitive data must not silently enter domain logic
+- never silently rewrite/repair competitive data
+- no IndexedDB schema/version changes unless explicitly authorized
+- raw results remain source of truth
+- calculated standings/totals are derived, not persisted
+
+### SCORING
+- deterministic code owns scoring
+- SCORE_SCALE = 100 fixed-point scoring
+- custom scoring supports maximum 2 decimal places
+- DNP contributes exactly zero
+- configured tiebreaks remain deterministic
+- fully equal teams share rank
+- team ID is stable presentation fallback only, never competitive
+- AI/graphics must never calculate competitive points
+
+### MATCH ENTRY / PERFORMANCE
+- MatchEntry is a TTPT-sensitive hot path
+- preserve responsive input behavior
+- do not add unnecessary persistence operations
+- preserve autosave/write-coordinator race safety
+- avoid heavyweight form/state libraries in MatchEntry
+
+### FUTURE AI
+- AI/OCR extracts observations only
+- deterministic code owns normalization, matching, validation and scoring
+- ambiguity goes to review instead of being guessed
+- duplicate screenshots must never double-count
+- Tesseract.js is only a future benchmark candidate until explicitly selected
+
+### FUTURE GRAPHICS
+- graphic templates consume already-calculated standings
+- graphics never calculate points
+- rendering must not block standings availability
+
+### DEPENDENCIES
+- do not add packages without a concrete reason
+- prefer existing/simple local solutions where sufficient

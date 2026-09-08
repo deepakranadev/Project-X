@@ -583,26 +583,18 @@ Invalid structured output must never be committed to match results.
 Required architecture:
 
 ```text
-Screenshot
+slot list
++
+lobby observations
++
+result observations
     ↓
-AI Provider
+deterministic resolution
     ↓
-Structured Extraction
-    ↓
-Schema Validation
-    ↓
-Team Matching
-    ↓
-Tournament Validation
-    ↓
-Review Screen
-    ↓
-User Confirmation
-    ↓
-Match Results
-    ↓
-Scoring Engine
+deterministic scoring
 ```
+
+AI extracts observations only.
 
 AI output must NEVER directly finalize a match.
 
