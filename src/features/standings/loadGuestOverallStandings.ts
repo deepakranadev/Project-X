@@ -22,7 +22,7 @@ export interface LoadGuestOverallStandingsOptions {
   readonly tournament: Tournament;
   readonly matchRepository: MatchRepository;
   readonly matchResultRepository: MatchResultRepository;
-  readonly teamRepository: TeamRepository;
+  readonly teamRepository: Pick<TeamRepository, "listTeamsByTournament">;
 }
 
 export async function loadGuestOverallStandings({

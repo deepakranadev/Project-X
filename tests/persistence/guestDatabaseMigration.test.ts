@@ -2,8 +2,8 @@ import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
 
 import { validateScoringConfig } from "../../src/domain/scoring/validateScoringConfig";
-import type { Team } from "../../src/domain/teams/types";
-import type { Tournament } from "../../src/domain/tournaments/types";
+import type { GuestTeam as Team } from "../../src/features/teams/types";
+import type { GuestTournament as Tournament } from "../../src/features/tournaments/types";
 import { BGMI_STANDARD_SCORING_CONFIG } from "../../src/domain/tournaments/scoringPresets";
 import {
   GUEST_DATABASE_VERSION,

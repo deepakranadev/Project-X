@@ -2,20 +2,24 @@ import type {
   MatchStatus,
   ParticipationStatus,
 } from "@/domain/matches/types";
-import type { PersistedImage } from "@/domain/tournaments/types";
-
-export type PersistedImageRecord = PersistedImage;
+import type { ScoringConfig } from "@/domain/scoring/types";
+import type { PersistedImage } from "@/infrastructure/browser/persistedImage";
 
 export interface TournamentRecord {
   readonly id: string;
   readonly name: string;
   readonly game: "BGMI";
-  readonly tournamentLogo: PersistedImageRecord | null;
+  readonly tournamentLogo: PersistedImage | null;
   readonly organizerName: string | null;
-  readonly organizerLogo: PersistedImageRecord | null;
+  readonly organizerLogo: PersistedImage | null;
   readonly scoringConfig: unknown;
   readonly createdAt: string;
   readonly updatedAt: string;
+}
+
+export interface WritableTournamentRecord
+  extends Omit<TournamentRecord, "scoringConfig"> {
+  readonly scoringConfig: ScoringConfig;
 }
 
 export interface TeamRecord {
@@ -24,7 +28,7 @@ export interface TeamRecord {
   readonly name: string;
   readonly shortName: string | null;
   readonly slotNumber: number | null;
-  readonly logo: PersistedImageRecord | null;
+  readonly logo: PersistedImage | null;
   readonly createdAt: string;
   readonly updatedAt: string;
 }

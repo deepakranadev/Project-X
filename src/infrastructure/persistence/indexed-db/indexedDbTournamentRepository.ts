@@ -1,9 +1,5 @@
-import type {
-  Tournament,
-  TournamentUpdate,
-} from "@/domain/tournaments/types";
-import { assertValidScoringConfig } from "@/domain/scoring/validateScoringConfig";
-import { copyScoringConfig } from "@/domain/tournaments/scoringPresets";
+import type { Tournament } from "@/domain/tournaments/types";
+import type { PersistedImage } from "@/infrastructure/browser/persistedImage";
 
 import {
   GuestDatabase,
@@ -19,9 +15,13 @@ import {
 import { observeTransaction, requestToPromise } from "./indexedDbUtils";
 import {
   parseTournamentRecord,
-  tournamentRecordToDomain,
+  tournamentRecordToTournament,
+  tournamentToRecord,
 } from "./parseStoredRecords";
-import type { TournamentRepository } from "@/features/tournaments/tournamentRepository";
+import type {
+  TournamentRepository,
+  TournamentUpdate,
+} from "@/features/tournaments/tournamentRepository";
 
 export interface IndexedDbTournamentRepositoryOptions
   extends GuestDatabaseOptions {
@@ -29,19 +29,15 @@ export interface IndexedDbTournamentRepositoryOptions
   readonly now?: () => string;
 }
 
+type PersistedTournament = Tournament<PersistedImage>;
+
 function defaultNow(): string {
   return new Date().toISOString();
 }
 
-function prepareTournamentForWrite(tournament: Tournament): Tournament {
-  assertValidScoringConfig(tournament.scoringConfig);
-  return {
-    ...tournament,
-    scoringConfig: copyScoringConfig(tournament.scoringConfig),
-  };
-}
-
-export class IndexedDbTournamentRepository implements TournamentRepository {
+export class IndexedDbTournamentRepository
+  implements TournamentRepository<PersistedImage>
+{
   private readonly database: GuestDatabase;
   private readonly now: () => string;
 
@@ -55,8 +51,10 @@ export class IndexedDbTournamentRepository implements TournamentRepository {
     this.now = options.now ?? defaultNow;
   }
 
-  async createTournament(tournament: Tournament): Promise<Tournament> {
-    const normalized = prepareTournamentForWrite(tournament);
+  async createTournament(
+    tournament: PersistedTournament,
+  ): Promise<PersistedTournament> {
+    const normalized = tournamentToRecord(tournament);
     const database = await this.database.getConnection();
     const transaction = database.transaction(TOURNAMENT_STORE, "readwrite");
     const completion = observeTransaction(transaction);
@@ -67,7 +65,7 @@ export class IndexedDbTournamentRepository implements TournamentRepository {
     return normalized;
   }
 
-  async getTournament(id: string): Promise<Tournament | null> {
+  async getTournament(id: string): Promise<PersistedTournament | null> {
     const database = await this.database.getConnection();
     const transaction = database.transaction(TOURNAMENT_STORE, "readonly");
     const completion = observeTransaction(transaction);
@@ -77,13 +75,13 @@ export class IndexedDbTournamentRepository implements TournamentRepository {
     await completion;
     return stored === undefined
       ? null
-      : tournamentRecordToDomain(parseTournamentRecord(stored));
+      : tournamentRecordToTournament(parseTournamentRecord(stored));
   }
 
   async updateTournament(
     id: string,
-    updates: TournamentUpdate,
-  ): Promise<Tournament | null> {
+    updates: TournamentUpdate<PersistedImage>,
+  ): Promise<PersistedTournament | null> {
     const database = await this.database.getConnection();
     const transaction = database.transaction(TOURNAMENT_STORE, "readwrite");
     const completion = observeTransaction(transaction);
@@ -95,8 +93,8 @@ export class IndexedDbTournamentRepository implements TournamentRepository {
       return null;
     }
 
-    const existing = tournamentRecordToDomain(parseTournamentRecord(stored));
-    const updated = prepareTournamentForWrite({
+    const existing = tournamentRecordToTournament(parseTournamentRecord(stored));
+    const updated = tournamentToRecord({
       ...existing,
       ...updates,
       id: existing.id,
@@ -109,7 +107,7 @@ export class IndexedDbTournamentRepository implements TournamentRepository {
     return updated;
   }
 
-  async listTournaments(): Promise<readonly Tournament[]> {
+  async listTournaments(): Promise<readonly PersistedTournament[]> {
     const database = await this.database.getConnection();
     const transaction = database.transaction(TOURNAMENT_STORE, "readonly");
     const completion = observeTransaction(transaction);
@@ -119,7 +117,7 @@ export class IndexedDbTournamentRepository implements TournamentRepository {
     await completion;
 
     const tournaments = storedTournaments.map((stored) =>
-      tournamentRecordToDomain(parseTournamentRecord(stored)),
+      tournamentRecordToTournament(parseTournamentRecord(stored)),
     );
 
     return tournaments.sort((left, right) => {

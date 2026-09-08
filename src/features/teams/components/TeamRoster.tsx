@@ -1,17 +1,17 @@
 "use client";
 
-import type { Team } from "@/domain/teams/types";
+import type { GuestTeam } from "@/features/teams/types";
 
 import { PersistedImagePreview } from "./PersistedImagePreview";
 
 interface TeamRosterProps {
-  readonly teams: readonly Team[];
+  readonly teams: readonly GuestTeam[];
   readonly isReordering: boolean;
-  readonly onEdit: (team: Team) => void;
+  readonly onEdit: (team: GuestTeam) => void;
   readonly onMove: (teamIndex: number, direction: -1 | 1) => void;
 }
 
-function TeamMark({ team }: { readonly team: Team }) {
+function TeamMark({ team }: { readonly team: GuestTeam }) {
   if (team.logo) {
     return (
       <PersistedImagePreview

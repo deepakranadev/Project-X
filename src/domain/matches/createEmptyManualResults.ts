@@ -6,16 +6,16 @@ export interface CreateEmptyManualResultsOptions {
   readonly tournamentId: string;
   readonly matchId: string;
   readonly teams: readonly Team[];
-  readonly createId?: () => string;
-  readonly now?: () => string;
+  readonly createId: () => string;
+  readonly now: () => string;
 }
 
 export function createEmptyManualResults({
   tournamentId,
   matchId,
   teams,
-  createId = () => crypto.randomUUID(),
-  now = () => new Date().toISOString(),
+  createId,
+  now,
 }: CreateEmptyManualResultsOptions): readonly StoredMatchResult[] {
   const timestamp = now();
   return teams.map((team) => ({
@@ -31,4 +31,3 @@ export function createEmptyManualResults({
     updatedAt: timestamp,
   }));
 }
-

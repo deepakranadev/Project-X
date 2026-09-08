@@ -8,24 +8,28 @@ import {
 } from "react";
 
 import { TeamDeletionError } from "@/domain/teams/errors";
-import type { Team } from "@/domain/teams/types";
 import {
   MAX_TEAM_NAME_LENGTH,
   MAX_TEAM_SHORT_NAME_LENGTH,
   MAX_TEAM_SLOT_NUMBER,
+} from "@/domain/teams/validation";
+import {
   TeamValidationError,
   type TeamValidationField,
   validateTeamLogo,
-} from "@/domain/teams/validation";
-import type { PersistedImage } from "@/domain/tournaments/types";
-import { MAX_LOGO_FILE_SIZE_BYTES } from "@/domain/tournaments/validation";
+} from "@/features/teams/validation";
 import { TeamRepositoryError } from "@/features/teams/teamRepository";
+import type { GuestTeam } from "@/features/teams/types";
+import {
+  MAX_LOGO_FILE_SIZE_BYTES,
+  type PersistedImage,
+} from "@/infrastructure/browser/persistedImage";
 import { getClientTeamRepository } from "@/infrastructure/persistence/indexed-db/clientTeamRepository";
 
 import { PersistedImagePreview } from "./PersistedImagePreview";
 
 interface TeamEditSheetProps {
-  readonly team: Team;
+  readonly team: GuestTeam;
   readonly onClose: () => void;
   readonly onDeleted: () => Promise<void>;
   readonly onSaved: () => Promise<void>;

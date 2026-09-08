@@ -1,10 +1,11 @@
 import {
   validateBulkTeamNames,
   type BulkTeamParseIssue,
-} from "@/domain/teams/parseBulkTeamNames";
-import type { Team } from "@/domain/teams/types";
+} from "./parseBulkTeamNames";
 
 import type { TeamRepository } from "./teamRepository";
+import type { GuestTeam } from "./types";
+import type { PersistedImage } from "@/infrastructure/browser/persistedImage";
 
 export interface GuestTeamCreationDependencies {
   readonly createId?: () => string;
@@ -32,9 +33,9 @@ function defaultNow(): string {
 export async function createGuestTeamsFromText(
   tournamentId: string,
   pastedNames: string,
-  repository: TeamRepository,
+  repository: TeamRepository<PersistedImage>,
   dependencies: GuestTeamCreationDependencies = {},
-): Promise<readonly Team[]> {
+): Promise<readonly GuestTeam[]> {
   const existingTeams = await repository.listTeamsByTournament(tournamentId);
   const parsed = validateBulkTeamNames(pastedNames, existingTeams);
   if (parsed.issues.length > 0) {
@@ -47,7 +48,7 @@ export async function createGuestTeamsFromText(
   );
   const timestamp = (dependencies.now ?? defaultNow)();
   const createId = dependencies.createId ?? defaultCreateId;
-  const teams: Team[] = parsed.candidates.map((candidate, index) => ({
+  const teams: GuestTeam[] = parsed.candidates.map((candidate, index) => ({
     id: createId(),
     tournamentId,
     name: candidate.name,

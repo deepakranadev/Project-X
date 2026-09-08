@@ -5,17 +5,20 @@ import {
   type ParticipationStatus,
 } from "@/domain/matches/types";
 import { MAX_TEAM_SLOT_NUMBER } from "@/domain/teams/validation";
-import type { Tournament } from "@/domain/tournaments/types";
-import { validatePersistedImage } from "@/domain/tournaments/validation";
 import { assertValidScoringConfig } from "@/domain/scoring/validateScoringConfig";
 import { copyScoringConfig } from "@/domain/tournaments/scoringPresets";
+import type { Tournament } from "@/domain/tournaments/types";
+import {
+  validatePersistedImage,
+  type PersistedImage,
+} from "@/infrastructure/browser/persistedImage";
 
 import type {
   MatchRecord,
   MatchResultRecord,
-  PersistedImageRecord,
   TeamRecord,
   TournamentRecord,
+  WritableTournamentRecord,
 } from "./indexedDbRecords";
 import {
   corruptStoredRecord,
@@ -58,7 +61,7 @@ function parseImage(
   entityType: PersistedEntityType,
   record: unknown,
   field: string,
-): PersistedImageRecord | null {
+): PersistedImage | null {
   if (value === null) return null;
   if (
     !isPlainRecord(value) ||
@@ -68,7 +71,7 @@ function parseImage(
     fail(entityType, record, `${field} is not a valid persisted image object.`);
   }
 
-  const image: PersistedImageRecord = {
+  const image: PersistedImage = {
     blob: value.blob,
     fileName: value.fileName,
   };
@@ -158,11 +161,23 @@ export function parseTournamentRecord(value: unknown): TournamentRecord {
   };
 }
 
-export function tournamentRecordToDomain(record: TournamentRecord): Tournament {
+export function tournamentRecordToTournament(
+  record: TournamentRecord,
+): Tournament<PersistedImage> {
   assertValidScoringConfig(record.scoringConfig);
   return {
     ...record,
     scoringConfig: copyScoringConfig(record.scoringConfig),
+  };
+}
+
+export function tournamentToRecord(
+  tournament: Tournament<PersistedImage>,
+): WritableTournamentRecord {
+  assertValidScoringConfig(tournament.scoringConfig);
+  return {
+    ...tournament,
+    scoringConfig: copyScoringConfig(tournament.scoringConfig),
   };
 }
 

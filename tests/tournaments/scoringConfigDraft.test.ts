@@ -5,7 +5,7 @@ import {
   scoringConfigToDraft,
   scoringDraftToConfig,
   type ScoringConfigDraft,
-} from "../../src/domain/tournaments/scoringConfigDraft";
+} from "../../src/features/scoring/scoringConfigDraft";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
 
 function standardDraft(): ScoringConfigDraft {

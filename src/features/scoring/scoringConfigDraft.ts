@@ -7,11 +7,10 @@ import {
   assertValidScoringConfig,
   validateScoringConfig,
 } from "@/domain/scoring/validateScoringConfig";
-
 import {
   isBgmiStandardScoringConfig,
   STANDARD_BGMI_PLACEMENTS,
-} from "./scoringPresets";
+} from "@/domain/tournaments/scoringPresets";
 
 export type ScoringPresetSelection = "BGMI_STANDARD" | "CUSTOM";
 

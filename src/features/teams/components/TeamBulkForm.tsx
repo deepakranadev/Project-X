@@ -2,7 +2,7 @@
 
 import { type FormEvent, useMemo, useState } from "react";
 
-import { validateBulkTeamNames } from "@/domain/teams/parseBulkTeamNames";
+import { validateBulkTeamNames } from "@/features/teams/parseBulkTeamNames";
 import type { Team } from "@/domain/teams/types";
 import {
   createGuestTeamsFromText,

@@ -28,7 +28,7 @@ import {
   parseMatchResultRecord,
   parseTeamRecord,
   parseTournamentRecord,
-  tournamentRecordToDomain,
+  tournamentRecordToTournament,
 } from "./parseStoredRecords";
 import type {
   FinalizeMatchResult,
@@ -272,7 +272,7 @@ export class IndexedDbMatchLifecycleRepository
           "This tournament no longer exists on this device.",
         );
       }
-      tournamentRecordToDomain(parseTournamentRecord(storedTournament));
+      tournamentRecordToTournament(parseTournamentRecord(storedTournament));
 
       const matchStore = transaction.objectStore(MATCH_STORE);
       const duplicateNumber = await requestToPromise<IDBValidKey | undefined>(
@@ -353,7 +353,7 @@ export class IndexedDbMatchLifecycleRepository
           "This tournament no longer exists on this device.",
         );
       }
-      tournamentRecordToDomain(parseTournamentRecord(storedTournament));
+      tournamentRecordToTournament(parseTournamentRecord(storedTournament));
       const matchStore = transaction.objectStore(MATCH_STORE);
       const storedMatch = await requestToPromise<unknown>(
         matchStore.get(command.matchId),
@@ -433,7 +433,7 @@ export class IndexedDbMatchLifecycleRepository
           "This tournament no longer exists on this device.",
         );
       }
-      tournamentRecordToDomain(parseTournamentRecord(storedTournament));
+      tournamentRecordToTournament(parseTournamentRecord(storedTournament));
       const matchStore = transaction.objectStore(MATCH_STORE);
       const storedMatch = await requestToPromise<unknown>(
         matchStore.get(command.matchId),

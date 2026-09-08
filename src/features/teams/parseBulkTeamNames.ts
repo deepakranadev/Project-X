@@ -1,9 +1,9 @@
+import type { Team } from "@/domain/teams/types";
 import {
   MAX_TEAM_NAME_LENGTH,
   normalizeTeamNameKey,
   normalizeTeamWhitespace,
-} from "./validation";
-import type { Team } from "./types";
+} from "@/domain/teams/validation";
 
 export type BulkTeamParseIssueCode =
   | "EMPTY_BATCH"

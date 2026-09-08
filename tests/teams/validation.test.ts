@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import type { CreateTeamInput } from "../../src/domain/teams/types";
 import {
   MAX_TEAM_NAME_LENGTH,
   MAX_TEAM_SHORT_NAME_LENGTH,
+} from "../../src/domain/teams/validation";
+import type { CreateTeamInput } from "../../src/features/teams/types";
+import {
   validateTeamLogo,
   validateTeamInput,
-} from "../../src/domain/teams/validation";
+} from "../../src/features/teams/validation";
 
 function validInput(overrides: Partial<CreateTeamInput> = {}): CreateTeamInput {
   return {

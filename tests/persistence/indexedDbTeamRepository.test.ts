@@ -1,14 +1,15 @@
 import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
 
-import type { Team, TeamUpdate } from "../../src/domain/teams/types";
-import type { Tournament } from "../../src/domain/tournaments/types";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
-import { GuestDatabase } from "../../src/infrastructure/persistence/indexed-db/guestDatabase";
 import {
-  IndexedDbTeamRepository,
   TeamRepositoryError,
-} from "../../src/infrastructure/persistence/indexed-db/indexedDbTeamRepository";
+  type TeamUpdate,
+} from "../../src/features/teams/teamRepository";
+import type { GuestTeam as Team } from "../../src/features/teams/types";
+import type { GuestTournament as Tournament } from "../../src/features/tournaments/types";
+import { GuestDatabase } from "../../src/infrastructure/persistence/indexed-db/guestDatabase";
+import { IndexedDbTeamRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTeamRepository";
 import { IndexedDbTournamentRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTournamentRepository";
 
 function tournament(id: string): Tournament {
@@ -126,7 +127,7 @@ describe("IndexedDbTeamRepository", () => {
       id: "replaced-id",
       tournamentId: "tournament-two",
       createdAt: "2099-01-01T00:00:00.000Z",
-    } as TeamUpdate;
+    } as TeamUpdate<NonNullable<Team["logo"]>>;
 
     const updated = await teams.updateTeam(
       "tournament-one",

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type { Team } from "@/domain/teams/types";
+import type { GuestTeam } from "@/features/teams/types";
 import { getClientTeamRepository } from "@/infrastructure/persistence/indexed-db/clientTeamRepository";
 
 import { TeamBulkForm } from "./TeamBulkForm";
@@ -18,12 +18,12 @@ export function TeamManagement({
   tournamentId,
   onTeamsChanged,
 }: TeamManagementProps) {
-  const [teams, setTeams] = useState<readonly Team[]>([]);
+  const [teams, setTeams] = useState<readonly GuestTeam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isReordering, setIsReordering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [editingTeam, setEditingTeam] = useState<GuestTeam | null>(null);
 
   const reloadTeams = useCallback(async () => {
     const roster = await getClientTeamRepository().listTeamsByTournament(

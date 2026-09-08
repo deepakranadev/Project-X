@@ -3,19 +3,21 @@
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, type FormEvent, useState } from "react";
 
-import type {
-  CreateTournamentInput,
-  TournamentImage,
-} from "@/domain/tournaments/types";
 import {
-  MAX_LOGO_FILE_SIZE_BYTES,
   MAX_ORGANIZER_NAME_LENGTH,
   MAX_TOURNAMENT_NAME_LENGTH,
+} from "@/domain/tournaments/validation";
+import {
   TournamentValidationError,
   type TournamentValidationField,
   validateTournamentImage,
-} from "@/domain/tournaments/validation";
+} from "@/features/tournaments/validation";
 import { createGuestTournament } from "@/features/tournaments/createGuestTournament";
+import type { CreateTournamentInput } from "@/features/tournaments/types";
+import {
+  MAX_LOGO_FILE_SIZE_BYTES,
+  type PersistedImage,
+} from "@/infrastructure/browser/persistedImage";
 import { getClientTournamentRepository } from "@/infrastructure/persistence/indexed-db/clientTournamentRepository";
 
 type LogoField = "tournamentLogo" | "organizerLogo";
@@ -34,7 +36,7 @@ function errorMessageForStorage(error: unknown): string {
 export function TournamentCreationForm() {
   const router = useRouter();
   const [logos, setLogos] = useState<
-    Record<LogoField, TournamentImage | null>
+    Record<LogoField, PersistedImage | null>
   >({
     tournamentLogo: null,
     organizerLogo: null,
@@ -57,7 +59,7 @@ export function TournamentCreationForm() {
       return;
     }
 
-    const image: TournamentImage = { blob: file, fileName: file.name };
+    const image: PersistedImage = { blob: file, fileName: file.name };
     const issues = validateTournamentImage(image, field);
     if (issues.length > 0) {
       setLogos((current) => ({ ...current, [field]: null }));

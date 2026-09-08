@@ -7,7 +7,7 @@ import {
   parseMatchResultRecord,
   parseTeamRecord,
   parseTournamentRecord,
-  tournamentRecordToDomain,
+  tournamentRecordToTournament,
 } from "../../src/infrastructure/persistence/indexed-db/parseStoredRecords";
 import type { PersistenceError } from "../../src/infrastructure/persistence/indexed-db/persistenceErrors";
 
@@ -90,7 +90,7 @@ function expectCorrupt(
 describe("stored IndexedDB record parsers", () => {
   it("parses and maps a valid tournament record", () => {
     const record = parseTournamentRecord(tournamentRecord());
-    expect(tournamentRecordToDomain(record)).toEqual(tournamentRecord());
+    expect(tournamentRecordToTournament(record)).toEqual(tournamentRecord());
   });
 
   it("rejects a non-object tournament value without inventing an identity", () => {
@@ -138,7 +138,7 @@ describe("stored IndexedDB record parsers", () => {
         },
       }),
     );
-    expect(() => tournamentRecordToDomain(record)).toThrow(
+    expect(() => tournamentRecordToTournament(record)).toThrow(
       InvalidScoringConfigError,
     );
   });

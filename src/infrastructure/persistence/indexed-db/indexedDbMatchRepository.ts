@@ -22,7 +22,7 @@ import {
 import {
   parseMatchRecord,
   parseTournamentRecord,
-  tournamentRecordToDomain,
+  tournamentRecordToTournament,
 } from "./parseStoredRecords";
 import type { MatchRepository } from "@/features/matches/matchRepository";
 
@@ -119,7 +119,7 @@ export class IndexedDbMatchRepository implements MatchRepository {
         "This tournament no longer exists on this device.",
       );
     }
-    tournamentRecordToDomain(parseTournamentRecord(storedTournament));
+    tournamentRecordToTournament(parseTournamentRecord(storedTournament));
 
     const store = transaction.objectStore(MATCH_STORE);
     const numberKey = [normalized.tournamentId, normalized.matchNumber];

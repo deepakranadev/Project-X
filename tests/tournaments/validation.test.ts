@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import type { CreateTournamentInput } from "../../src/domain/tournaments/types";
+import type { CreateTournamentInput } from "../../src/features/tournaments/types";
 import {
-  MAX_LOGO_FILE_SIZE_BYTES,
   validateTournamentImage,
   validateTournamentInput,
-} from "../../src/domain/tournaments/validation";
+} from "../../src/features/tournaments/validation";
+import { MAX_LOGO_FILE_SIZE_BYTES } from "../../src/infrastructure/browser/persistedImage";
 
 function validInput(
   overrides: Partial<CreateTournamentInput> = {},

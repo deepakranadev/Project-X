@@ -1,10 +1,11 @@
-import type { Team, TeamUpdate } from "@/domain/teams/types";
 import { TeamDeletionError } from "@/domain/teams/errors";
+import type { Team } from "@/domain/teams/types";
 import {
-  assertValidTeamInput,
   normalizeTeamNameKey,
   normalizeTeamWhitespace,
 } from "@/domain/teams/validation";
+import { assertValidTeamInput } from "@/features/teams/validation";
+import type { PersistedImage } from "@/infrastructure/browser/persistedImage";
 
 import {
   GuestDatabase,
@@ -25,25 +26,26 @@ import {
 import {
   parseTeamRecord,
   parseTournamentRecord,
-  tournamentRecordToDomain,
+  tournamentRecordToTournament,
 } from "./parseStoredRecords";
 import {
   TeamRepositoryError,
   type TeamRepository,
+  type TeamUpdate,
 } from "@/features/teams/teamRepository";
-
-export { TeamRepositoryError } from "@/features/teams/teamRepository";
 
 export interface IndexedDbTeamRepositoryOptions extends GuestDatabaseOptions {
   readonly database?: GuestDatabase;
   readonly now?: () => string;
 }
 
+type PersistedTeam = Team<PersistedImage>;
+
 function defaultNow(): string {
   return new Date().toISOString();
 }
 
-function compareTeams(left: Team, right: Team): number {
+function compareTeams(left: PersistedTeam, right: PersistedTeam): number {
   if (left.slotNumber !== null && right.slotNumber !== null) {
     const slotComparison = left.slotNumber - right.slotNumber;
     if (slotComparison !== 0) return slotComparison;
@@ -60,7 +62,7 @@ function compareTeams(left: Team, right: Team): number {
   return left.createdAt.localeCompare(right.createdAt);
 }
 
-function normalizeTeam(team: Team): Team {
+function normalizeTeam(team: PersistedTeam): PersistedTeam {
   return {
     ...team,
     tournamentId: team.tournamentId.trim(),
@@ -70,8 +72,8 @@ function normalizeTeam(team: Team): Team {
 }
 
 function assertUniqueTeam(
-  candidate: Team,
-  roster: readonly Team[],
+  candidate: PersistedTeam,
+  roster: readonly PersistedTeam[],
   ignoredTeamId?: string,
 ): void {
   const duplicateName = roster.find(
@@ -100,7 +102,7 @@ function assertUniqueTeam(
   }
 }
 
-export class IndexedDbTeamRepository implements TeamRepository {
+export class IndexedDbTeamRepository implements TeamRepository<PersistedImage> {
   private readonly database: GuestDatabase;
   private readonly now: () => string;
 
@@ -114,14 +116,16 @@ export class IndexedDbTeamRepository implements TeamRepository {
     this.now = options.now ?? defaultNow;
   }
 
-  async createTeam(team: Team): Promise<Team> {
+  async createTeam(team: PersistedTeam): Promise<PersistedTeam> {
     const created = await this.bulkCreateTeams([team]);
     const first = created[0];
     if (!first) throw new Error("Team creation did not return a team.");
     return first;
   }
 
-  async bulkCreateTeams(teams: readonly Team[]): Promise<readonly Team[]> {
+  async bulkCreateTeams(
+    teams: readonly PersistedTeam[],
+  ): Promise<readonly PersistedTeam[]> {
     if (teams.length === 0) return [];
 
     const normalizedTeams = teams.map(normalizeTeam);
@@ -154,14 +158,14 @@ export class IndexedDbTeamRepository implements TeamRepository {
         "This tournament no longer exists on this device.",
       );
     }
-    tournamentRecordToDomain(parseTournamentRecord(storedTournament));
+    tournamentRecordToTournament(parseTournamentRecord(storedTournament));
 
     const store = transaction.objectStore(TEAM_STORE);
     const storedTeams = await requestToPromise<unknown[]>(
       store.index(TEAM_TOURNAMENT_INDEX).getAll(tournamentId),
     );
     const existing = storedTeams.map(parseTeamRecord);
-    const checked: Team[] = [...existing];
+    const checked: PersistedTeam[] = [...existing];
 
     try {
       for (const team of normalizedTeams) {
@@ -180,7 +184,10 @@ export class IndexedDbTeamRepository implements TeamRepository {
     return normalizedTeams;
   }
 
-  async getTeam(tournamentId: string, teamId: string): Promise<Team | null> {
+  async getTeam(
+    tournamentId: string,
+    teamId: string,
+  ): Promise<PersistedTeam | null> {
     const database = await this.database.getConnection();
     const transaction = database.transaction(TEAM_STORE, "readonly");
     const completion = observeTransaction(transaction);
@@ -194,7 +201,7 @@ export class IndexedDbTeamRepository implements TeamRepository {
 
   async listTeamsByTournament(
     tournamentId: string,
-  ): Promise<readonly Team[]> {
+  ): Promise<readonly PersistedTeam[]> {
     const database = await this.database.getConnection();
     const transaction = database.transaction(TEAM_STORE, "readonly");
     const completion = observeTransaction(transaction);
@@ -212,8 +219,8 @@ export class IndexedDbTeamRepository implements TeamRepository {
   async updateTeam(
     tournamentId: string,
     teamId: string,
-    updates: TeamUpdate,
-  ): Promise<Team | null> {
+    updates: TeamUpdate<PersistedImage>,
+  ): Promise<PersistedTeam | null> {
     const database = await this.database.getConnection();
     const transaction = database.transaction(TEAM_STORE, "readwrite");
     const completion = observeTransaction(transaction);
@@ -301,7 +308,7 @@ export class IndexedDbTeamRepository implements TeamRepository {
   async reorderTeams(
     tournamentId: string,
     orderedTeamIds: readonly string[],
-  ): Promise<readonly Team[]> {
+  ): Promise<readonly PersistedTeam[]> {
     const database = await this.database.getConnection();
     const transaction = database.transaction(TEAM_STORE, "readwrite");
     const completion = observeTransaction(transaction);
@@ -330,11 +337,11 @@ export class IndexedDbTeamRepository implements TeamRepository {
     }
 
     const timestamp = this.now();
-    const reordered: Team[] = [];
+    const reordered: PersistedTeam[] = [];
     for (const [index, teamId] of orderedTeamIds.entries()) {
       const existing = byId.get(teamId);
       if (!existing) continue;
-      const updated: Team = {
+      const updated: PersistedTeam = {
         ...existing,
         slotNumber: index + 1,
         updatedAt: timestamp,

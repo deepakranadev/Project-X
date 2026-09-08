@@ -1,11 +1,13 @@
 import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
 
-import type { Tournament } from "../../src/domain/tournaments/types";
-import type { TournamentUpdate } from "../../src/domain/tournaments/types";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
 import type { ScoringConfig } from "../../src/domain/scoring/types";
 import { InvalidScoringConfigError } from "../../src/domain/scoring/validateScoringConfig";
+import type {
+  TournamentUpdate,
+} from "../../src/features/tournaments/tournamentRepository";
+import type { GuestTournament as Tournament } from "../../src/features/tournaments/types";
 import {
   GuestDatabase,
   TOURNAMENT_STORE,
@@ -62,7 +64,7 @@ describe("IndexedDbTournamentRepository", () => {
       organizerName: "Nova Esports",
       id: "replaced-id",
       createdAt: "2099-01-01T00:00:00.000Z",
-    } as TournamentUpdate;
+    } as TournamentUpdate<NonNullable<Tournament["tournamentLogo"]>>;
     const updated = await repository.updateTournament("one", updates);
 
     expect(updated).toMatchObject({

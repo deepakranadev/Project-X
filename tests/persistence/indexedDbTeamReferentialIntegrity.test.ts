@@ -6,9 +6,9 @@ import type {
   StoredMatchResult,
   TournamentMatch,
 } from "../../src/domain/matches/types";
-import type { Team } from "../../src/domain/teams/types";
+import type { GuestTeam as Team } from "../../src/features/teams/types";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
-import type { Tournament } from "../../src/domain/tournaments/types";
+import type { GuestTournament as Tournament } from "../../src/features/tournaments/types";
 import {
   GuestDatabase,
   MATCH_RESULT_STORE,

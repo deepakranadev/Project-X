@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { PersistedImage } from "@/domain/tournaments/types";
+import type { PersistedImage } from "@/infrastructure/browser/persistedImage";
 
 interface PersistedImagePreviewProps {
   readonly image: PersistedImage;

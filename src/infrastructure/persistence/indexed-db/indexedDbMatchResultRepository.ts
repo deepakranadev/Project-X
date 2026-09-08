@@ -23,7 +23,7 @@ import {
   parseMatchResultRecord,
   parseTeamRecord,
   parseTournamentRecord,
-  tournamentRecordToDomain,
+  tournamentRecordToTournament,
 } from "./parseStoredRecords";
 import type { MatchResultRepository } from "@/features/matches/matchResultRepository";
 
@@ -204,7 +204,7 @@ export class IndexedDbMatchResultRepository
         "This tournament no longer exists on this device.",
       );
     }
-    tournamentRecordToDomain(parseTournamentRecord(storedTournament));
+    tournamentRecordToTournament(parseTournamentRecord(storedTournament));
     const storedMatch = await requestToPromise<unknown>(
       transaction.objectStore(MATCH_STORE).get(matchId),
     );

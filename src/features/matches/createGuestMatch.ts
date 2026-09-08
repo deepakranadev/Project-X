@@ -8,10 +8,12 @@ import type {
 import type { MatchRepository } from "./matchRepository";
 import type { TeamRepository } from "@/features/teams/teamRepository";
 
+import { createMatchId, currentMatchTimestamp } from "./matchFactories";
+
 export interface CreateGuestMatchWithInitialResultsOptions {
   readonly tournamentId: string;
   readonly matchRepository: MatchRepository;
-  readonly teamRepository: TeamRepository;
+  readonly teamRepository: Pick<TeamRepository, "listTeamsByTournament">;
   readonly lifecycleRepository: MatchLifecycleRepository;
   readonly name?: string;
   readonly createId?: () => string;
@@ -24,8 +26,8 @@ export async function createGuestMatchWithInitialResults({
   teamRepository,
   lifecycleRepository,
   name,
-  createId = () => crypto.randomUUID(),
-  now = () => new Date().toISOString(),
+  createId = createMatchId,
+  now = currentMatchTimestamp,
 }: CreateGuestMatchWithInitialResultsOptions): Promise<PersistedMatchSnapshot> {
   const [existing, teams] = await Promise.all([
     matchRepository.listMatchesByTournament(tournamentId),

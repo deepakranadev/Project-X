@@ -1,7 +1,9 @@
 "use client";
 
-import type { PlacementPointsDraftRow } from "@/domain/tournaments/scoringConfigDraft";
-import { placementLabel } from "@/domain/tournaments/scoringConfigDraft";
+import {
+  placementLabel,
+  type PlacementPointsDraftRow,
+} from "@/features/scoring/scoringConfigDraft";
 
 interface PlacementPointsEditorProps {
   readonly rows: readonly PlacementPointsDraftRow[];

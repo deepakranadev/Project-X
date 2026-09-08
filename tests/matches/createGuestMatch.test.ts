@@ -5,7 +5,8 @@ import type {
   StoredMatchResult,
   TournamentMatch,
 } from "../../src/domain/matches/types";
-import type { Team, TeamUpdate } from "../../src/domain/teams/types";
+import type { TeamUpdate } from "../../src/features/teams/teamRepository";
+import type { GuestTeam as Team } from "../../src/features/teams/types";
 import { createGuestMatchWithInitialResults } from "../../src/features/matches/createGuestMatch";
 import type {
   FinalizeMatchResult,

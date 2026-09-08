@@ -8,9 +8,9 @@ import {
   scoringDraftToConfig,
   type ScoringConfigDraft,
   type ScoringDraftIssue,
-} from "@/domain/tournaments/scoringConfigDraft";
+} from "@/features/scoring/scoringConfigDraft";
 import { createBgmiStandardScoringConfig } from "@/domain/tournaments/scoringPresets";
-import type { Tournament } from "@/domain/tournaments/types";
+import type { GuestTournament } from "@/features/tournaments/types";
 import { getClientTournamentRepository } from "@/infrastructure/persistence/indexed-db/clientTournamentRepository";
 
 import { PlacementPointsEditor } from "./PlacementPointsEditor";
@@ -19,7 +19,7 @@ import { TiebreakerEditor } from "./TiebreakerEditor";
 interface ScoringConfigurationProps {
   readonly initialConfig: ScoringConfig;
   readonly tournamentId: string;
-  readonly onSaved: (tournament: Tournament) => void;
+  readonly onSaved: (tournament: GuestTournament) => void;
 }
 
 function updateDraft(

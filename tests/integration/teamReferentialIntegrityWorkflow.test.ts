@@ -6,9 +6,9 @@ import type {
   TournamentMatch,
 } from "../../src/domain/matches/types";
 import { TeamDeletionError } from "../../src/domain/teams/errors";
-import type { Team } from "../../src/domain/teams/types";
+import type { GuestTeam as Team } from "../../src/features/teams/types";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
-import type { Tournament } from "../../src/domain/tournaments/types";
+import type { GuestTournament as Tournament } from "../../src/features/tournaments/types";
 import { loadGuestOverallStandings } from "../../src/features/standings/loadGuestOverallStandings";
 import { GuestDatabase } from "../../src/infrastructure/persistence/indexed-db/guestDatabase";
 import { IndexedDbMatchLifecycleRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbMatchLifecycleRepository";

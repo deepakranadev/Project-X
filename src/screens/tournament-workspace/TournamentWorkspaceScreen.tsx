@@ -7,11 +7,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { InvalidScoringConfigError } from "@/domain/scoring/validateScoringConfig";
-import type { Tournament } from "@/domain/tournaments/types";
 import { MatchManagement } from "@/features/matches/components/MatchManagement";
 import { ScoringConfiguration } from "@/features/scoring/components/ScoringConfiguration";
 import { OverallStandings } from "@/features/standings/components/OverallStandings";
 import { TeamManagement } from "@/features/teams/components/TeamManagement";
+import type { GuestTournament } from "@/features/tournaments/types";
 import { getClientTournamentRepository } from "@/infrastructure/persistence/indexed-db/clientTournamentRepository";
 
 interface TournamentWorkspaceScreenProps {
@@ -22,7 +22,7 @@ type WorkspaceState =
   | { readonly status: "loading" }
   | {
       readonly status: "ready";
-      readonly tournament: Tournament;
+      readonly tournament: GuestTournament;
       readonly tournamentLogoUrl: string | null;
       readonly organizerLogoUrl: string | null;
     }
@@ -48,7 +48,7 @@ export function TournamentWorkspaceScreen({
   const [state, setState] = useState<WorkspaceState>({ status: "loading" });
   const [standingsRefreshVersion, setStandingsRefreshVersion] = useState(0);
 
-  function handleTournamentSaved(tournament: Tournament) {
+  function handleTournamentSaved(tournament: GuestTournament) {
     setState((current) =>
       current.status === "ready" ? { ...current, tournament } : current,
     );

@@ -1,27 +1,24 @@
-import type { PersistedImage } from "@/domain/tournaments/types";
-import {
-  validatePersistedImage,
-  type PersistedImageValidationIssueCode,
-} from "@/domain/tournaments/validation";
-
-import type { CreateTeamInput } from "./types";
-
 export const MAX_TEAM_NAME_LENGTH = 80;
 export const MAX_TEAM_SHORT_NAME_LENGTH = 16;
 export const MAX_TEAM_SLOT_NUMBER = 999;
+
+export interface TeamValidationCandidate {
+  readonly tournamentId: string;
+  readonly name: string;
+  readonly shortName?: string | null;
+  readonly slotNumber?: number | null;
+}
 
 export type TeamValidationField =
   | "tournamentId"
   | "name"
   | "shortName"
-  | "slotNumber"
-  | "logo";
+  | "slotNumber";
 
 export type TeamValidationIssueCode =
   | "REQUIRED"
   | "TOO_LONG"
-  | "INVALID_SLOT"
-  | PersistedImageValidationIssueCode;
+  | "INVALID_SLOT";
 
 export interface TeamValidationIssue {
   readonly field: TeamValidationField;
@@ -34,16 +31,6 @@ export interface TeamValidationResult {
   readonly issues: readonly TeamValidationIssue[];
 }
 
-export class TeamValidationError extends Error {
-  readonly issues: readonly TeamValidationIssue[];
-
-  constructor(issues: readonly TeamValidationIssue[]) {
-    super(issues.map((issue) => issue.message).join(" "));
-    this.name = "TeamValidationError";
-    this.issues = issues;
-  }
-}
-
 export function normalizeTeamWhitespace(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -52,16 +39,9 @@ export function normalizeTeamNameKey(value: string): string {
   return normalizeTeamWhitespace(value).toLowerCase();
 }
 
-export function validateTeamLogo(
-  image: PersistedImage,
-): readonly TeamValidationIssue[] {
-  return validatePersistedImage(image).map((issue) => ({
-    ...issue,
-    field: "logo" as const,
-  }));
-}
-
-export function validateTeamInput(input: CreateTeamInput): TeamValidationResult {
+export function validateTeam(
+  input: TeamValidationCandidate,
+): TeamValidationResult {
   const issues: TeamValidationIssue[] = [];
   const tournamentId = input.tournamentId.trim();
   const name = normalizeTeamWhitespace(input.name);
@@ -111,16 +91,5 @@ export function validateTeamInput(input: CreateTeamInput): TeamValidationResult 
     });
   }
 
-  if (input.logo) {
-    issues.push(...validateTeamLogo(input.logo));
-  }
-
   return { valid: issues.length === 0, issues };
-}
-
-export function assertValidTeamInput(
-  input: CreateTeamInput,
-): asserts input is CreateTeamInput {
-  const validation = validateTeamInput(input);
-  if (!validation.valid) throw new TeamValidationError(validation.issues);
 }

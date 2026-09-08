@@ -1,4 +1,8 @@
-import type { Team, TeamUpdate } from "@/domain/teams/types";
+import type { Team } from "@/domain/teams/types";
+
+export type TeamUpdate<Image = unknown> = Partial<
+  Pick<Team<Image>, "name" | "shortName" | "slotNumber" | "logo">
+>;
 
 export type TeamRepositoryErrorCode =
   | "TOURNAMENT_NOT_FOUND"
@@ -16,19 +20,26 @@ export class TeamRepositoryError extends Error {
   }
 }
 
-export interface TeamRepository {
-  createTeam(team: Team): Promise<Team>;
-  bulkCreateTeams(teams: readonly Team[]): Promise<readonly Team[]>;
-  getTeam(tournamentId: string, teamId: string): Promise<Team | null>;
-  listTeamsByTournament(tournamentId: string): Promise<readonly Team[]>;
+export interface TeamRepository<Image = unknown> {
+  createTeam(team: Team<Image>): Promise<Team<Image>>;
+  bulkCreateTeams(
+    teams: readonly Team<Image>[],
+  ): Promise<readonly Team<Image>[]>;
+  getTeam(
+    tournamentId: string,
+    teamId: string,
+  ): Promise<Team<Image> | null>;
+  listTeamsByTournament(
+    tournamentId: string,
+  ): Promise<readonly Team<Image>[]>;
   updateTeam(
     tournamentId: string,
     teamId: string,
-    updates: TeamUpdate,
-  ): Promise<Team | null>;
+    updates: TeamUpdate<Image>,
+  ): Promise<Team<Image> | null>;
   deleteTeam(tournamentId: string, teamId: string): Promise<void>;
   reorderTeams(
     tournamentId: string,
     orderedTeamIds: readonly string[],
-  ): Promise<readonly Team[]>;
+  ): Promise<readonly Team<Image>[]>;
 }

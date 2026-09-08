@@ -22,6 +22,10 @@ import type { Team } from "@/domain/teams/types";
 import { finalizeGuestMatch } from "@/features/matches/finalizeGuestMatch";
 import { formatMatchEntryIssue, matchResultHasIssue } from "@/features/matches/matchEntryIssues";
 import {
+  createMatchId,
+  currentMatchTimestamp,
+} from "@/features/matches/matchFactories";
+import {
   createMatchWriteCoordinator,
   type ExplicitMatchAction,
 } from "@/features/matches/matchWriteCoordinator";
@@ -98,6 +102,8 @@ export function MatchEntry({
           tournamentId: match.tournamentId,
           matchId: match.id,
           teams: missingTeams,
+          createId: createMatchId,
+          now: currentMatchTimestamp,
         });
         const currentTeamIds = new Set(teams.map((team) => team.id));
         const ordered = [

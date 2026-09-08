@@ -1,8 +1,8 @@
 import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
 
-import type { Tournament } from "../../src/domain/tournaments/types";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
+import type { GuestTournament as Tournament } from "../../src/features/tournaments/types";
 import {
   createGuestTeamsFromText,
   GuestTeamCreationError,

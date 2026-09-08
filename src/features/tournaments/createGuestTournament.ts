@@ -1,14 +1,12 @@
-import type {
-  CreateTournamentInput,
-  Tournament,
-} from "@/domain/tournaments/types";
+import type { CreateTournamentInput, GuestTournament } from "./types";
 import {
   TournamentValidationError,
   validateTournamentInput,
-} from "@/domain/tournaments/validation";
+} from "./validation";
 import { createBgmiStandardScoringConfig } from "@/domain/tournaments/scoringPresets";
 
 import type { TournamentRepository } from "./tournamentRepository";
+import type { PersistedImage } from "@/infrastructure/browser/persistedImage";
 
 export interface TournamentCreationDependencies {
   readonly createId?: () => string;
@@ -25,16 +23,16 @@ function now(): string {
 
 export async function createGuestTournament(
   input: CreateTournamentInput,
-  repository: TournamentRepository,
+  repository: TournamentRepository<PersistedImage>,
   dependencies: TournamentCreationDependencies = {},
-): Promise<Tournament> {
+): Promise<GuestTournament> {
   const validation = validateTournamentInput(input);
   if (!validation.valid) {
     throw new TournamentValidationError(validation.issues);
   }
 
   const timestamp = (dependencies.now ?? now)();
-  const tournament: Tournament = {
+  const tournament: GuestTournament = {
     id: (dependencies.createId ?? createId)(),
     name: input.name.trim(),
     game: "BGMI",

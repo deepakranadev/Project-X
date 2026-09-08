@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseBulkTeamNames } from "../../src/domain/teams/parseBulkTeamNames";
+import { parseBulkTeamNames } from "../../src/features/teams/parseBulkTeamNames";
 
 describe("parseBulkTeamNames", () => {
   it("creates one candidate per line", () => {
