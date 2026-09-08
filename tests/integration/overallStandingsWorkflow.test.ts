@@ -8,14 +8,14 @@ import type {
 import type { Team } from "../../src/domain/teams/types";
 import type { Tournament } from "../../src/domain/tournaments/types";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
-import { finalizeGuestMatch } from "../../src/lib/persistence/finalizeGuestMatch";
-import { GuestDatabase } from "../../src/lib/persistence/guestDatabase";
-import { IndexedDbMatchLifecycleRepository } from "../../src/lib/persistence/indexedDbMatchLifecycleRepository";
-import { IndexedDbMatchRepository } from "../../src/lib/persistence/indexedDbMatchRepository";
-import { IndexedDbMatchResultRepository } from "../../src/lib/persistence/indexedDbMatchResultRepository";
-import { IndexedDbTeamRepository } from "../../src/lib/persistence/indexedDbTeamRepository";
-import { IndexedDbTournamentRepository } from "../../src/lib/persistence/indexedDbTournamentRepository";
-import { loadGuestOverallStandings } from "../../src/lib/persistence/loadGuestOverallStandings";
+import { finalizeGuestMatch } from "../../src/features/matches/finalizeGuestMatch";
+import { loadGuestOverallStandings } from "../../src/features/standings/loadGuestOverallStandings";
+import { GuestDatabase } from "../../src/infrastructure/persistence/indexed-db/guestDatabase";
+import { IndexedDbMatchLifecycleRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbMatchLifecycleRepository";
+import { IndexedDbMatchRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbMatchRepository";
+import { IndexedDbMatchResultRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbMatchResultRepository";
+import { IndexedDbTeamRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTeamRepository";
+import { IndexedDbTournamentRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTournamentRepository";
 
 const tournament: Tournament = {
   id: "tournament-one",

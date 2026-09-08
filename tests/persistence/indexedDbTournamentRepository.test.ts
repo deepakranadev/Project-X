@@ -9,12 +9,12 @@ import { InvalidScoringConfigError } from "../../src/domain/scoring/validateScor
 import {
   GuestDatabase,
   TOURNAMENT_STORE,
-} from "../../src/lib/persistence/guestDatabase";
-import { IndexedDbTournamentRepository } from "../../src/lib/persistence/indexedDbTournamentRepository";
+} from "../../src/infrastructure/persistence/indexed-db/guestDatabase";
+import { IndexedDbTournamentRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTournamentRepository";
 import {
   observeTransaction,
   requestToPromise,
-} from "../../src/lib/persistence/indexedDbUtils";
+} from "../../src/infrastructure/persistence/indexed-db/indexedDbUtils";
 
 function tournament(
   id: string,

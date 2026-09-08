@@ -8,15 +8,15 @@ import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/sc
 import {
   GuestDatabase,
   MATCH_RESULT_STORE,
-} from "../../src/lib/persistence/guestDatabase";
-import { IndexedDbMatchRepository } from "../../src/lib/persistence/indexedDbMatchRepository";
+} from "../../src/infrastructure/persistence/indexed-db/guestDatabase";
+import { IndexedDbMatchRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbMatchRepository";
 import {
   IndexedDbMatchResultRepository,
   MatchResultRepositoryError,
-} from "../../src/lib/persistence/indexedDbMatchResultRepository";
-import { IndexedDbTeamRepository } from "../../src/lib/persistence/indexedDbTeamRepository";
-import { IndexedDbTournamentRepository } from "../../src/lib/persistence/indexedDbTournamentRepository";
-import { requestToPromise } from "../../src/lib/persistence/indexedDbUtils";
+} from "../../src/infrastructure/persistence/indexed-db/indexedDbMatchResultRepository";
+import { IndexedDbTeamRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTeamRepository";
+import { IndexedDbTournamentRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTournamentRepository";
+import { requestToPromise } from "../../src/infrastructure/persistence/indexed-db/indexedDbUtils";
 
 function tournament(id: string): Tournament {
   return {

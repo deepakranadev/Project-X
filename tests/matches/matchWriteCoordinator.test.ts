@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createMatchWriteCoordinator } from "../../src/components/matches/matchWriteCoordinator";
+import { createMatchWriteCoordinator } from "../../src/features/matches/matchWriteCoordinator";
 
 function deferred() {
   let resolve!: () => void;

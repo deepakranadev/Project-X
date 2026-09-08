@@ -6,10 +6,10 @@ import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/sc
 import {
   createGuestTeamsFromText,
   GuestTeamCreationError,
-} from "../../src/lib/persistence/createGuestTeams";
-import { GuestDatabase } from "../../src/lib/persistence/guestDatabase";
-import { IndexedDbTeamRepository } from "../../src/lib/persistence/indexedDbTeamRepository";
-import { IndexedDbTournamentRepository } from "../../src/lib/persistence/indexedDbTournamentRepository";
+} from "../../src/features/teams/createGuestTeams";
+import { GuestDatabase } from "../../src/infrastructure/persistence/indexed-db/guestDatabase";
+import { IndexedDbTeamRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTeamRepository";
+import { IndexedDbTournamentRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTournamentRepository";
 
 function tournament(): Tournament {
   return {

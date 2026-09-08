@@ -9,17 +9,17 @@ import {
   MATCH_STORE,
   TEAM_STORE,
   TOURNAMENT_STORE,
-} from "../../src/lib/persistence/guestDatabase";
-import { IndexedDbMatchRepository } from "../../src/lib/persistence/indexedDbMatchRepository";
-import { IndexedDbMatchResultRepository } from "../../src/lib/persistence/indexedDbMatchResultRepository";
-import { IndexedDbTeamRepository } from "../../src/lib/persistence/indexedDbTeamRepository";
-import { IndexedDbTournamentRepository } from "../../src/lib/persistence/indexedDbTournamentRepository";
+} from "../../src/infrastructure/persistence/indexed-db/guestDatabase";
+import { IndexedDbMatchRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbMatchRepository";
+import { IndexedDbMatchResultRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbMatchResultRepository";
+import { IndexedDbTeamRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTeamRepository";
+import { IndexedDbTournamentRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTournamentRepository";
 import {
   observeTransaction,
   requestToPromise,
-} from "../../src/lib/persistence/indexedDbUtils";
-import { loadGuestOverallStandings } from "../../src/lib/persistence/loadGuestOverallStandings";
-import type { PersistenceError } from "../../src/lib/persistence/persistenceErrors";
+} from "../../src/infrastructure/persistence/indexed-db/indexedDbUtils";
+import { loadGuestOverallStandings } from "../../src/features/standings/loadGuestOverallStandings";
+import type { PersistenceError } from "../../src/infrastructure/persistence/indexed-db/persistenceErrors";
 
 vi.mock("../../src/domain/standings/calculateOverallStandings", async (importOriginal) => {
   const actual = await importOriginal<

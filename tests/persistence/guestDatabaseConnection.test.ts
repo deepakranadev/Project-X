@@ -5,8 +5,8 @@ import {
   GUEST_DATABASE_VERSION,
   GuestDatabase,
   TOURNAMENT_STORE,
-} from "../../src/lib/persistence/guestDatabase";
-import type { PersistenceError } from "../../src/lib/persistence/persistenceErrors";
+} from "../../src/infrastructure/persistence/indexed-db/guestDatabase";
+import type { PersistenceError } from "../../src/infrastructure/persistence/indexed-db/persistenceErrors";
 
 function openDatabase(
   factory: IDBFactory,

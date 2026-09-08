@@ -1,8 +1,8 @@
 import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
 
-import { createGuestTournament } from "../../src/lib/persistence/createGuestTournament";
-import { IndexedDbTournamentRepository } from "../../src/lib/persistence/indexedDbTournamentRepository";
+import { createGuestTournament } from "../../src/features/tournaments/createGuestTournament";
+import { IndexedDbTournamentRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTournamentRepository";
 
 describe("createGuestTournament", () => {
   it("creates and persists a normalized tournament with a stable generated id", async () => {

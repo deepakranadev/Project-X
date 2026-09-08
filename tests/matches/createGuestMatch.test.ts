@@ -6,15 +6,15 @@ import type {
   TournamentMatch,
 } from "../../src/domain/matches/types";
 import type { Team, TeamUpdate } from "../../src/domain/teams/types";
-import { createGuestMatchWithInitialResults } from "../../src/lib/persistence/createGuestMatch";
+import { createGuestMatchWithInitialResults } from "../../src/features/matches/createGuestMatch";
 import type {
   FinalizeMatchResult,
   MatchLifecycleRepository,
   MatchSnapshotCommand,
   PersistedMatchSnapshot,
-} from "../../src/lib/persistence/matchLifecycleRepository";
-import type { MatchRepository } from "../../src/lib/persistence/matchRepository";
-import type { TeamRepository } from "../../src/lib/persistence/teamRepository";
+} from "../../src/features/matches/matchLifecycleRepository";
+import type { MatchRepository } from "../../src/features/matches/matchRepository";
+import type { TeamRepository } from "../../src/features/teams/teamRepository";
 
 class MemoryMatchRepository implements MatchRepository {
   readonly matches: TournamentMatch[] = [];

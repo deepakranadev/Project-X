@@ -4,12 +4,12 @@ import { describe, expect, it } from "vitest";
 import type { Team, TeamUpdate } from "../../src/domain/teams/types";
 import type { Tournament } from "../../src/domain/tournaments/types";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
-import { GuestDatabase } from "../../src/lib/persistence/guestDatabase";
+import { GuestDatabase } from "../../src/infrastructure/persistence/indexed-db/guestDatabase";
 import {
   IndexedDbTeamRepository,
   TeamRepositoryError,
-} from "../../src/lib/persistence/indexedDbTeamRepository";
-import { IndexedDbTournamentRepository } from "../../src/lib/persistence/indexedDbTournamentRepository";
+} from "../../src/infrastructure/persistence/indexed-db/indexedDbTeamRepository";
+import { IndexedDbTournamentRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTournamentRepository";
 
 function tournament(id: string): Tournament {
   return {

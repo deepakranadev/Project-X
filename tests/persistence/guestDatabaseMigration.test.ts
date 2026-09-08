@@ -17,9 +17,9 @@ import {
   TEAM_TOURNAMENT_INDEX,
   TEAM_TOURNAMENT_SLOT_INDEX,
   TOURNAMENT_STORE,
-} from "../../src/lib/persistence/guestDatabase";
-import { IndexedDbTeamRepository } from "../../src/lib/persistence/indexedDbTeamRepository";
-import { IndexedDbTournamentRepository } from "../../src/lib/persistence/indexedDbTournamentRepository";
+} from "../../src/infrastructure/persistence/indexed-db/guestDatabase";
+import { IndexedDbTeamRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTeamRepository";
+import { IndexedDbTournamentRepository } from "../../src/infrastructure/persistence/indexed-db/indexedDbTournamentRepository";
 
 const legacyTournament: Omit<Tournament, "scoringConfig"> = {
   id: "legacy-tournament",

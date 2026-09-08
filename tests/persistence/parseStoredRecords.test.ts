@@ -8,8 +8,8 @@ import {
   parseTeamRecord,
   parseTournamentRecord,
   tournamentRecordToDomain,
-} from "../../src/lib/persistence/parseStoredRecords";
-import type { PersistenceError } from "../../src/lib/persistence/persistenceErrors";
+} from "../../src/infrastructure/persistence/indexed-db/parseStoredRecords";
+import type { PersistenceError } from "../../src/infrastructure/persistence/indexed-db/persistenceErrors";
 
 const timestamp = "2026-09-08T10:00:00.000Z";
 
