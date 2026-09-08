@@ -21,6 +21,19 @@ describe("validateScoringConfig", () => {
     });
   });
 
+  it.each([1, 1.5, 0.25])(
+    "accepts integer, one-decimal, and two-decimal score value %s",
+    (scoreValue) => {
+      expect(
+        validateScoringConfig({
+          ...validConfig,
+          placementPoints: { 1: scoreValue },
+          pointsPerKill: scoreValue,
+        }),
+      ).toEqual({ valid: true, issues: [] });
+    },
+  );
+
   it("rejects duplicate tiebreak criteria", () => {
     const validation = validateScoringConfig({
       ...validConfig,
@@ -77,6 +90,42 @@ describe("validateScoringConfig", () => {
     },
   );
 
+  it.each([
+    ["placementPoints.1", { placementPoints: { 1: 0.001 } }],
+    ["pointsPerKill", { pointsPerKill: 1.234 }],
+    ["pointsPerKill", { pointsPerKill: 0.1 + 0.2 }],
+  ] as const)(
+    "rejects unsupported precision in %s without rounding",
+    (field, override) => {
+      const validation = validateScoringConfig({
+        ...validConfig,
+        ...override,
+      });
+
+      expect(validation.issues).toContainEqual(
+        expect.objectContaining({
+          code: "UNSUPPORTED_SCORE_PRECISION",
+          field,
+          message: expect.stringContaining("at most 2 decimal places"),
+        }),
+      );
+    },
+  );
+
+  it("rejects a score that cannot fit exact safe-integer units", () => {
+    const validation = validateScoringConfig({
+      ...validConfig,
+      pointsPerKill: Number.MAX_SAFE_INTEGER,
+    });
+
+    expect(validation.issues).toContainEqual(
+      expect.objectContaining({
+        code: "SCORE_OUT_OF_RANGE",
+        field: "pointsPerKill",
+      }),
+    );
+  });
+
   it("rejects unsupported tiebreak criteria", () => {
     const validation = validateScoringConfig({
       ...validConfig,
@@ -96,6 +145,15 @@ describe("validateScoringConfig", () => {
   ])("prevents malformed configuration from producing standings", (config) => {
     expect(() =>
       calculateTournamentStandings([], config as ScoringConfig),
+    ).toThrow(InvalidScoringConfigError);
+  });
+
+  it("rejects unsupported precision before calculating an empty tournament", () => {
+    expect(() =>
+      calculateTournamentStandings([], {
+        ...validConfig,
+        pointsPerKill: 0.001,
+      }),
     ).toThrow(InvalidScoringConfigError);
   });
 });

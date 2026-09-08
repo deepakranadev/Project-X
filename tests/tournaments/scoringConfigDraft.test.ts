@@ -74,6 +74,39 @@ describe("scoring configuration UI mapper", () => {
     });
   });
 
+  it("rejects placement points with more than two decimals actionably", () => {
+    const result = scoringDraftToConfig(
+      replacePlacement(standardDraft(), 1, "10.999"),
+    );
+
+    expect(result).toEqual({
+      valid: false,
+      issues: [
+        expect.objectContaining({
+          field: "placementPoints.1",
+          message: "Placement points for 1st must use at most 2 decimal places.",
+        }),
+      ],
+    });
+  });
+
+  it("rejects finish points with more than two decimals actionably", () => {
+    const result = scoringDraftToConfig({
+      ...standardDraft(),
+      pointsPerFinish: "0.001",
+    });
+
+    expect(result).toEqual({
+      valid: false,
+      issues: [
+        expect.objectContaining({
+          field: "pointsPerFinish",
+          message: "Points per finish must use at most 2 decimal places.",
+        }),
+      ],
+    });
+  });
+
   it("rejects duplicate tiebreakers using the domain validator", () => {
     const result = scoringDraftToConfig({
       ...standardDraft(),
@@ -105,6 +138,21 @@ describe("scoring configuration UI mapper", () => {
         pointsPerKill: 1.5,
         tiebreakers: ["TOTAL_KILLS", "WWCD"],
       }),
+    });
+  });
+
+  it("accepts and preserves two-decimal custom scoring", () => {
+    const result = scoringDraftToConfig({
+      ...replacePlacement(standardDraft(), 1, "10.75"),
+      pointsPerFinish: "0.25",
+    });
+
+    expect(result).toMatchObject({
+      valid: true,
+      config: {
+        placementPoints: { 1: 10.75 },
+        pointsPerKill: 0.25,
+      },
     });
   });
 

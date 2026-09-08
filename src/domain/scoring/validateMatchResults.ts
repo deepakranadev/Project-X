@@ -4,6 +4,11 @@ import type {
   MatchValidationOptions,
   MatchValidationResult,
 } from "./types";
+import {
+  hasSupportedScorePrecision,
+  isScoreValueInExactRange,
+  MAX_SCORE_DECIMAL_PLACES,
+} from "./scorePrecision";
 
 function isFiniteNonNegative(value: number): boolean {
   return Number.isFinite(value) && value >= 0;
@@ -60,6 +65,20 @@ export function validateMatchResults(
         resultIndex,
         teamId: teamId || undefined,
       });
+    } else if (!hasSupportedScorePrecision(bonusPoints)) {
+      issues.push({
+        code: "INVALID_BONUS",
+        message: `Bonus points must use at most ${MAX_SCORE_DECIMAL_PLACES} decimal places.`,
+        resultIndex,
+        teamId: teamId || undefined,
+      });
+    } else if (!isScoreValueInExactRange(bonusPoints)) {
+      issues.push({
+        code: "INVALID_BONUS",
+        message: "Bonus points exceed the supported exact score range.",
+        resultIndex,
+        teamId: teamId || undefined,
+      });
     }
 
     const penaltyPoints = result.penaltyPoints ?? 0;
@@ -70,13 +89,33 @@ export function validateMatchResults(
         resultIndex,
         teamId: teamId || undefined,
       });
+    } else if (!hasSupportedScorePrecision(penaltyPoints)) {
+      issues.push({
+        code: "INVALID_PENALTY",
+        message: `Penalty points must use at most ${MAX_SCORE_DECIMAL_PLACES} decimal places.`,
+        resultIndex,
+        teamId: teamId || undefined,
+      });
+    } else if (!isScoreValueInExactRange(penaltyPoints)) {
+      issues.push({
+        code: "INVALID_PENALTY",
+        message: "Penalty points exceed the supported exact score range.",
+        resultIndex,
+        teamId: teamId || undefined,
+      });
     }
 
     if (result.didNotParticipate) {
-      if (result.placement !== null || result.kills !== null) {
+      if (
+        result.placement !== null ||
+        result.kills !== null ||
+        bonusPoints !== 0 ||
+        penaltyPoints !== 0
+      ) {
         issues.push({
           code: "DNP_HAS_SCORING_DATA",
-          message: "DNP results must leave placement and kills empty.",
+          message:
+            "DNP results must leave placement and kills empty and set bonus and penalty points to zero.",
           resultIndex,
           teamId: teamId || undefined,
         });

@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { InvalidScoringConfigError } from "@/domain/scoring/validateScoringConfig";
 import type { Tournament } from "@/domain/tournaments/types";
 import { getClientTournamentRepository } from "@/lib/persistence/clientTournamentRepository";
 import { MatchManagement } from "@/components/matches/MatchManagement";
@@ -27,6 +28,7 @@ type WorkspaceState =
       readonly organizerLogoUrl: string | null;
     }
   | { readonly status: "missing" }
+  | { readonly status: "invalid-scoring"; readonly message: string }
   | { readonly status: "error" };
 
 function StoredLogo({
@@ -81,8 +83,21 @@ export function TournamentWorkspace({
           tournamentLogoUrl,
           organizerLogoUrl,
         });
-      } catch {
-        if (active) setState({ status: "error" });
+      } catch (error) {
+        if (!active) return;
+        if (error instanceof InvalidScoringConfigError) {
+          const precisionIsInvalid = error.issues.some(
+            (issue) => issue.code === "UNSUPPORTED_SCORE_PRECISION",
+          );
+          setState({
+            status: "invalid-scoring",
+            message: precisionIsInvalid
+              ? "This tournament has a legacy scoring value with more than 2 decimal places. Its saved data was not changed."
+              : "This tournament has a legacy scoring configuration that is no longer valid. Its saved data was not changed.",
+          });
+          return;
+        }
+        setState({ status: "error" });
       }
     }
 
@@ -104,22 +119,35 @@ export function TournamentWorkspace({
     );
   }
 
-  if (state.status === "missing" || state.status === "error") {
+  if (
+    state.status === "missing" ||
+    state.status === "invalid-scoring" ||
+    state.status === "error"
+  ) {
+    const invalidScoring = state.status === "invalid-scoring";
     return (
       <div className="site-shell grid place-items-center px-5">
         <main className="panel w-full max-w-md p-6 text-center sm:p-8">
           <p className="eyebrow">
-            {state.status === "missing" ? "Not found" : "Storage unavailable"}
+            {state.status === "missing"
+              ? "Not found"
+              : invalidScoring
+                ? "Scoring configuration blocked"
+                : "Storage unavailable"}
           </p>
           <h1 className="mt-3 text-2xl font-black text-white">
             {state.status === "missing"
               ? "Tournament not found"
-              : "Could not open tournament"}
+              : invalidScoring
+                ? "Scoring values need attention"
+                : "Could not open tournament"}
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-400">
             {state.status === "missing"
               ? "This guest tournament may belong to another browser or device."
-              : "Check this browser’s storage permissions, then try again."}
+              : invalidScoring
+                ? state.message
+                : "Check this browser’s storage permissions, then try again."}
           </p>
           <Link className="primary-action mt-6" href="/tournaments/new">
             Create a tournament

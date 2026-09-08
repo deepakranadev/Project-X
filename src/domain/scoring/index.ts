@@ -1,6 +1,17 @@
 export { calculateMatchScore } from "./calculateMatchScore";
 export { calculateTournamentStandings } from "./calculateTournamentStandings";
 export { resolveTies } from "./resolveTies";
+export {
+  addScoreUnits,
+  fromScoreUnits,
+  hasSupportedScorePrecision,
+  isScoreValueInExactRange,
+  MAX_SCORE_DECIMAL_PLACES,
+  multiplyScoreUnits,
+  SCORE_SCALE,
+  toScoreUnits,
+} from "./scorePrecision";
+export type { ScoreUnits } from "./scorePrecision";
 export { validateMatchResults } from "./validateMatchResults";
 export {
   assertValidScoringConfig,

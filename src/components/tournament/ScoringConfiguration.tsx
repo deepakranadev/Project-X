@@ -207,7 +207,7 @@ export function ScoringConfiguration({
               type="number"
               inputMode="decimal"
               min={0}
-              step="any"
+              step="0.01"
               value={draft.pointsPerFinish}
               aria-invalid={Boolean(finishError)}
               onChange={(event) =>

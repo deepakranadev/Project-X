@@ -81,6 +81,34 @@ function draftNumber(value: string): number {
 function actionableIssue(
   issue: ScoringConfigValidationIssue,
 ): ScoringDraftIssue {
+  if (issue.code === "UNSUPPORTED_SCORE_PRECISION") {
+    if (issue.field === "pointsPerKill") {
+      return {
+        field: "pointsPerFinish",
+        message: "Points per finish must use at most 2 decimal places.",
+      };
+    }
+
+    const placement = Number(issue.field.split(".").at(-1));
+    return {
+      field: issue.field,
+      message: Number.isInteger(placement)
+        ? `Placement points for ${placementLabel(placement)} must use at most 2 decimal places.`
+        : "Placement points must use at most 2 decimal places.",
+    };
+  }
+
+  if (issue.code === "SCORE_OUT_OF_RANGE") {
+    return {
+      field:
+        issue.field === "pointsPerKill" ? "pointsPerFinish" : issue.field,
+      message:
+        issue.field === "pointsPerKill"
+          ? "Points per finish exceed the supported exact score range."
+          : issue.message,
+    };
+  }
+
   if (issue.code === "INVALID_PLACEMENT_VALUE") {
     const placement = Number(issue.field.split(".").at(-1));
     return {

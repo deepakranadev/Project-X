@@ -94,4 +94,19 @@ describe("resolveTies", () => {
     ]);
     expect(resolved.map(({ rank }) => rank)).toEqual([1, 1, 3]);
   });
+
+  it("uses team IDs only as stable rendering order for equal decimal scores", () => {
+    const resolved = resolveTies(
+      [
+        standing("team-z", { placementPoints: 0.3, totalPoints: 0.3 }),
+        standing("team-a", { placementPoints: 0.3, totalPoints: 0.3 }),
+      ],
+      ["PLACEMENT_POINTS"],
+    );
+
+    expect(resolved.map(({ teamId, rank }) => ({ teamId, rank }))).toEqual([
+      { teamId: "team-a", rank: 1 },
+      { teamId: "team-z", rank: 1 },
+    ]);
+  });
 });

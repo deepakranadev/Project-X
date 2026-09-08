@@ -45,7 +45,7 @@ export function PlacementPointsEditor({
                 type="number"
                 inputMode="decimal"
                 min={0}
-                step="any"
+                step="0.01"
                 value={row.points}
                 aria-label={`Points for ${label} place`}
                 aria-invalid={Boolean(error)}

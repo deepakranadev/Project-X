@@ -1,5 +1,10 @@
-import { calculateMatchScore } from "./calculateMatchScore";
+import { calculateMatchScoreUnits } from "./calculateMatchScore";
 import { resolveTies } from "./resolveTies";
+import {
+  addScoreUnits,
+  fromScoreUnits,
+  type ScoreUnits,
+} from "./scorePrecision";
 import type {
   Match,
   ScoringConfig,
@@ -14,12 +19,12 @@ interface MutableStanding {
   teamId: TeamId;
   matchesPlayed: number;
   wwcd: number;
-  placementPoints: number;
+  placementPointUnits: ScoreUnits;
   totalKills: number;
-  killPoints: number;
-  bonusPoints: number;
-  penaltyPoints: number;
-  totalPoints: number;
+  killPointUnits: ScoreUnits;
+  bonusPointUnits: ScoreUnits;
+  penaltyPointUnits: ScoreUnits;
+  totalPointUnits: ScoreUnits;
   bestPlacement: number | null;
   latestMatchPlacement: number | null;
 }
@@ -30,14 +35,33 @@ function createEmptyStanding(teamId: TeamId): MutableStanding {
     teamId,
     matchesPlayed: 0,
     wwcd: 0,
-    placementPoints: 0,
+    placementPointUnits: 0,
     totalKills: 0,
-    killPoints: 0,
-    bonusPoints: 0,
-    penaltyPoints: 0,
-    totalPoints: 0,
+    killPointUnits: 0,
+    bonusPointUnits: 0,
+    penaltyPointUnits: 0,
+    totalPointUnits: 0,
     bestPlacement: null,
     latestMatchPlacement: null,
+  };
+}
+
+function toTournamentStanding(
+  standing: MutableStanding,
+): TournamentStanding {
+  return {
+    rank: standing.rank,
+    teamId: standing.teamId,
+    matchesPlayed: standing.matchesPlayed,
+    wwcd: standing.wwcd,
+    placementPoints: fromScoreUnits(standing.placementPointUnits),
+    totalKills: standing.totalKills,
+    killPoints: fromScoreUnits(standing.killPointUnits),
+    bonusPoints: fromScoreUnits(standing.bonusPointUnits),
+    penaltyPoints: fromScoreUnits(standing.penaltyPointUnits),
+    totalPoints: fromScoreUnits(standing.totalPointUnits),
+    bestPlacement: standing.bestPlacement,
+    latestMatchPlacement: standing.latestMatchPlacement,
   };
 }
 
@@ -70,15 +94,30 @@ export function calculateTournamentStandings(
     }
 
     for (const result of match.results) {
-      const score = calculateMatchScore(match.id, result, config);
+      const score = calculateMatchScoreUnits(match.id, result, config);
       const standing =
         standings.get(result.teamId) ?? createEmptyStanding(result.teamId);
 
-      standing.placementPoints += score.placementPoints;
-      standing.killPoints += score.killPoints;
-      standing.bonusPoints += score.bonusPoints;
-      standing.penaltyPoints += score.penaltyPoints;
-      standing.totalPoints += score.totalPoints;
+      standing.placementPointUnits = addScoreUnits(
+        standing.placementPointUnits,
+        score.placementPoints,
+      );
+      standing.killPointUnits = addScoreUnits(
+        standing.killPointUnits,
+        score.killPoints,
+      );
+      standing.bonusPointUnits = addScoreUnits(
+        standing.bonusPointUnits,
+        score.bonusPoints,
+      );
+      standing.penaltyPointUnits = addScoreUnits(
+        standing.penaltyPointUnits,
+        score.penaltyPoints,
+      );
+      standing.totalPointUnits = addScoreUnits(
+        standing.totalPointUnits,
+        score.totalPoints,
+      );
 
       if (!score.didNotParticipate) {
         const placement = score.placement as number;
@@ -97,5 +136,8 @@ export function calculateTournamentStandings(
     }
   }
 
-  return resolveTies([...standings.values()], config.tiebreakers);
+  return resolveTies(
+    [...standings.values()].map(toTournamentStanding),
+    config.tiebreakers,
+  );
 }

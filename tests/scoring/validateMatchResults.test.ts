@@ -64,6 +64,22 @@ describe("validateMatchResults", () => {
     expect(validation).toEqual({ valid: true, issues: [] });
   });
 
+  it("accepts DNP with explicit zero bonus and penalty values", () => {
+    const validation = validateMatchResults(
+      [
+        {
+          ...result("team-a", null, null, true),
+          bonusPoints: 0,
+          penaltyPoints: 0,
+        },
+        result("team-b", 1, 2),
+      ],
+      { participantTeamIds: participants },
+    );
+
+    expect(validation).toEqual({ valid: true, issues: [] });
+  });
+
   it("rejects DNP rows that contain scoring data", () => {
     const validation = validateMatchResults(
       [result("team-a", 1, 0, true), result("team-b", 2, 2)],
@@ -76,6 +92,54 @@ describe("validateMatchResults", () => {
         teamId: "team-a",
       }),
     );
+  });
+
+  it.each([
+    { bonusPoints: 2 },
+    { penaltyPoints: 1 },
+    { bonusPoints: 2, penaltyPoints: 1 },
+  ])("rejects DNP with non-zero adjustments: %j", (adjustments) => {
+    const validation = validateMatchResults(
+      [
+        {
+          ...result("team-a", null, null, true),
+          ...adjustments,
+        },
+        result("team-b", 1, 2),
+      ],
+      { participantTeamIds: participants },
+    );
+
+    expect(validation.issues).toContainEqual(
+      expect.objectContaining({
+        code: "DNP_HAS_SCORING_DATA",
+        teamId: "team-a",
+        message: expect.stringContaining("bonus and penalty points to zero"),
+      }),
+    );
+  });
+
+  it.each([
+    ["INVALID_BONUS", { bonusPoints: 0.001 }],
+    ["INVALID_PENALTY", { penaltyPoints: 1.234 }],
+  ] as const)("rejects unsupported %s precision", (code, adjustment) => {
+    const validation = validateMatchResults([
+      { ...result("team-a", 1, 0), ...adjustment },
+    ]);
+
+    expect(validation.issues).toContainEqual(
+      expect.objectContaining({
+        code,
+        message: expect.stringContaining("at most 2 decimal places"),
+      }),
+    );
+  });
+
+  it("keeps PLAYED with zero finishes valid", () => {
+    expect(validateMatchResults([result("team-a", 1, 0)])).toEqual({
+      valid: true,
+      issues: [],
+    });
   });
 
   it("flags unknown and missing teams against the participant roster", () => {

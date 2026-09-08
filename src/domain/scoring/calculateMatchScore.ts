@@ -4,6 +4,13 @@ import type {
   MatchResult,
   ScoringConfig,
 } from "./types";
+import {
+  addScoreUnits,
+  fromScoreUnits,
+  multiplyScoreUnits,
+  type ScoreUnits,
+  toScoreUnits,
+} from "./scorePrecision";
 import { assertValidScoringConfig } from "./validateScoringConfig";
 
 function assertFiniteNonNegative(value: number, field: string): void {
@@ -12,11 +19,24 @@ function assertFiniteNonNegative(value: number, field: string): void {
   }
 }
 
-export function calculateMatchScore(
+export interface CalculatedMatchScoreUnits {
+  readonly matchId: MatchId;
+  readonly teamId: MatchResult["teamId"];
+  readonly didNotParticipate: boolean;
+  readonly placement: number | null;
+  readonly kills: number | null;
+  readonly placementPoints: ScoreUnits;
+  readonly killPoints: ScoreUnits;
+  readonly bonusPoints: ScoreUnits;
+  readonly penaltyPoints: ScoreUnits;
+  readonly totalPoints: ScoreUnits;
+}
+
+export function calculateMatchScoreUnits(
   matchId: MatchId,
   result: MatchResult,
   config: ScoringConfig,
-): CalculatedMatchScore {
+): CalculatedMatchScoreUnits {
   assertValidScoringConfig(config);
 
   const bonusPoints = result.bonusPoints ?? 0;
@@ -25,8 +45,15 @@ export function calculateMatchScore(
   assertFiniteNonNegative(penaltyPoints, "penaltyPoints");
 
   if (result.didNotParticipate) {
-    if (result.placement !== null || result.kills !== null) {
-      throw new RangeError("DNP results must not include placement or kills.");
+    if (
+      result.placement !== null ||
+      result.kills !== null ||
+      bonusPoints !== 0 ||
+      penaltyPoints !== 0
+    ) {
+      throw new RangeError(
+        "DNP results must not include placement, kills, bonus points, or penalty points.",
+      );
     }
 
     return {
@@ -37,9 +64,9 @@ export function calculateMatchScore(
       kills: null,
       placementPoints: 0,
       killPoints: 0,
-      bonusPoints,
-      penaltyPoints,
-      totalPoints: bonusPoints - penaltyPoints,
+      bonusPoints: 0,
+      penaltyPoints: 0,
+      totalPoints: 0,
     };
   }
 
@@ -54,12 +81,13 @@ export function calculateMatchScore(
   const placement = result.placement as number;
   const kills = result.kills as number;
   const placementPoints = config.placementPoints[placement] ?? 0;
-
-  if (!Number.isFinite(placementPoints)) {
-    throw new RangeError(`placementPoints[${placement}] must be a finite number.`);
-  }
-
-  const killPoints = kills * config.pointsPerKill;
+  const placementPointUnits = toScoreUnits(placementPoints);
+  const killPointUnits = multiplyScoreUnits(
+    toScoreUnits(config.pointsPerKill),
+    kills,
+  );
+  const bonusPointUnits = toScoreUnits(bonusPoints);
+  const penaltyPointUnits = toScoreUnits(penaltyPoints);
 
   return {
     matchId,
@@ -67,10 +95,31 @@ export function calculateMatchScore(
     didNotParticipate: false,
     placement,
     kills,
-    placementPoints,
-    killPoints,
-    bonusPoints,
-    penaltyPoints,
-    totalPoints: placementPoints + killPoints + bonusPoints - penaltyPoints,
+    placementPoints: placementPointUnits,
+    killPoints: killPointUnits,
+    bonusPoints: bonusPointUnits,
+    penaltyPoints: penaltyPointUnits,
+    totalPoints: addScoreUnits(
+      placementPointUnits,
+      killPointUnits,
+      bonusPointUnits,
+      -penaltyPointUnits,
+    ),
+  };
+}
+
+export function calculateMatchScore(
+  matchId: MatchId,
+  result: MatchResult,
+  config: ScoringConfig,
+): CalculatedMatchScore {
+  const score = calculateMatchScoreUnits(matchId, result, config);
+  return {
+    ...score,
+    placementPoints: fromScoreUnits(score.placementPoints),
+    killPoints: fromScoreUnits(score.killPoints),
+    bonusPoints: fromScoreUnits(score.bonusPoints),
+    penaltyPoints: fromScoreUnits(score.penaltyPoints),
+    totalPoints: fromScoreUnits(score.totalPoints),
   };
 }

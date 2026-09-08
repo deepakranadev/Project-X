@@ -24,8 +24,18 @@ test("customizes and reloads tournament scoring on mobile", async ({ page }) => 
   await expect(page.getByLabel("Points per finish")).toHaveValue("1");
 
   await page.getByRole("button", { name: "Custom" }).click();
-  await page.getByLabel("Points for 1st place").fill("12");
-  await page.getByLabel("Points per finish").fill("2");
+  await page.getByLabel("Points for 1st place").fill("10.999");
+  await page.getByLabel("Points per finish").fill("0.001");
+  await page.getByRole("button", { name: "Save Scoring" }).click();
+  await expect(
+    page.getByText("Placement points for 1st must use at most 2 decimal places."),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Points per finish must use at most 2 decimal places."),
+  ).toBeVisible();
+
+  await page.getByLabel("Points for 1st place").fill("10.75");
+  await page.getByLabel("Points per finish").fill("0.25");
   await page.getByRole("button", { name: "Move Total Finishes up" }).click();
   await page.getByRole("button", { name: "Save Scoring" }).click();
   await expect(page.getByText("Scoring saved", { exact: true })).toBeVisible();
@@ -37,8 +47,8 @@ test("customizes and reloads tournament scoring on mobile", async ({ page }) => 
     "aria-pressed",
     "true",
   );
-  await expect(page.getByLabel("Points for 1st place")).toHaveValue("12");
-  await expect(page.getByLabel("Points per finish")).toHaveValue("2");
+  await expect(page.getByLabel("Points for 1st place")).toHaveValue("10.75");
+  await expect(page.getByLabel("Points per finish")).toHaveValue("0.25");
   await expect
     .poll(() =>
       page

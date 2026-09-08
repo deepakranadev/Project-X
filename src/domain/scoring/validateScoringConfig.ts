@@ -4,6 +4,11 @@ import type {
   ScoringConfigValidationResult,
   TiebreakerType,
 } from "./types";
+import {
+  hasSupportedScorePrecision,
+  isScoreValueInExactRange,
+  MAX_SCORE_DECIMAL_PLACES,
+} from "./scorePrecision";
 
 const VALID_TIEBREAKERS = new Set<TiebreakerType>([
   "TOTAL_POINTS",
@@ -82,11 +87,24 @@ export function validateScoringConfig(
         });
       }
 
+      const field = `placementPoints.${key}`;
       if (!isFiniteNonNegativeNumber(value)) {
         issues.push({
           code: "INVALID_PLACEMENT_VALUE",
-          field: `placementPoints.${key}`,
+          field,
           message: `Points for placement "${key}" must be a finite, non-negative number.`,
+        });
+      } else if (!hasSupportedScorePrecision(value)) {
+        issues.push({
+          code: "UNSUPPORTED_SCORE_PRECISION",
+          field,
+          message: `Points for placement "${key}" must use at most ${MAX_SCORE_DECIMAL_PLACES} decimal places.`,
+        });
+      } else if (!isScoreValueInExactRange(value)) {
+        issues.push({
+          code: "SCORE_OUT_OF_RANGE",
+          field,
+          message: `Points for placement "${key}" exceed the supported exact score range.`,
         });
       }
     }
@@ -97,6 +115,18 @@ export function validateScoringConfig(
       code: "INVALID_POINTS_PER_KILL",
       field: "pointsPerKill",
       message: "Points per kill must be a finite, non-negative number.",
+    });
+  } else if (!hasSupportedScorePrecision(config.pointsPerKill)) {
+    issues.push({
+      code: "UNSUPPORTED_SCORE_PRECISION",
+      field: "pointsPerKill",
+      message: `Points per kill must use at most ${MAX_SCORE_DECIMAL_PLACES} decimal places.`,
+    });
+  } else if (!isScoreValueInExactRange(config.pointsPerKill)) {
+    issues.push({
+      code: "SCORE_OUT_OF_RANGE",
+      field: "pointsPerKill",
+      message: "Points per kill exceed the supported exact score range.",
     });
   }
 

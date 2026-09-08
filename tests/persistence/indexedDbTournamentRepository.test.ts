@@ -5,7 +5,16 @@ import type { Tournament } from "../../src/domain/tournaments/types";
 import type { TournamentUpdate } from "../../src/domain/tournaments/types";
 import { createBgmiStandardScoringConfig } from "../../src/domain/tournaments/scoringPresets";
 import type { ScoringConfig } from "../../src/domain/scoring/types";
+import { InvalidScoringConfigError } from "../../src/domain/scoring/validateScoringConfig";
+import {
+  GuestDatabase,
+  TOURNAMENT_STORE,
+} from "../../src/lib/persistence/guestDatabase";
 import { IndexedDbTournamentRepository } from "../../src/lib/persistence/indexedDbTournamentRepository";
+import {
+  observeTransaction,
+  requestToPromise,
+} from "../../src/lib/persistence/indexedDbUtils";
 
 function tournament(
   id: string,
@@ -162,8 +171,8 @@ describe("IndexedDbTournamentRepository", () => {
     const factory = new IDBFactory();
     const databaseName = "repository-scoring-reopen-test";
     const customConfig: ScoringConfig = {
-      placementPoints: { 1: 15, 2: 8, 3: 4, 16: 0 },
-      pointsPerKill: 1.5,
+      placementPoints: { 1: 15.25, 2: 8, 3: 4, 16: 0 },
+      pointsPerKill: 0.25,
       tiebreakers: ["BEST_PLACEMENT", "TOTAL_KILLS", "WWCD"],
     };
     const first = new IndexedDbTournamentRepository({
@@ -182,6 +191,52 @@ describe("IndexedDbTournamentRepository", () => {
       scoringConfig: customConfig,
     });
     await reopened.close();
+  });
+
+  it("surfaces invalid legacy precision without mutating the stored tournament", async () => {
+    const database = new GuestDatabase({
+      databaseName: "repository-legacy-precision-test",
+      indexedDbFactory: new IDBFactory(),
+    });
+    const connection = await database.getConnection();
+    const legacy = tournament("legacy-precision", {
+      scoringConfig: {
+        placementPoints: { 1: 10.999, 2: 6 },
+        pointsPerKill: 0.001,
+        tiebreakers: ["TOTAL_KILLS"],
+      },
+    });
+    const write = connection.transaction(TOURNAMENT_STORE, "readwrite");
+    const writeCompletion = observeTransaction(write);
+    await requestToPromise(
+      write.objectStore(TOURNAMENT_STORE).add(legacy),
+    );
+    await writeCompletion;
+    const repository = new IndexedDbTournamentRepository({ database });
+
+    await expect(repository.getTournament(legacy.id)).rejects.toMatchObject<
+      Partial<InvalidScoringConfigError>
+    >({
+      issues: expect.arrayContaining([
+        expect.objectContaining({
+          code: "UNSUPPORTED_SCORE_PRECISION",
+          field: "placementPoints.1",
+        }),
+        expect.objectContaining({
+          code: "UNSUPPORTED_SCORE_PRECISION",
+          field: "pointsPerKill",
+        }),
+      ]),
+    });
+
+    const read = connection.transaction(TOURNAMENT_STORE, "readonly");
+    const readCompletion = observeTransaction(read);
+    const stored = await requestToPromise<Tournament>(
+      read.objectStore(TOURNAMENT_STORE).get(legacy.id),
+    );
+    await readCompletion;
+    expect(stored).toEqual(legacy);
+    await database.close();
   });
 
   it("rejects malformed scoring configurations without replacing the saved rules", async () => {

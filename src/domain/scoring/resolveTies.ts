@@ -1,7 +1,9 @@
 import type { TiebreakerType, TournamentStanding } from "./types";
+import { toScoreUnits } from "./scorePrecision";
 
 function compareDescending(left: number, right: number): number {
-  return right - left;
+  if (left === right) return 0;
+  return left > right ? -1 : 1;
 }
 
 function comparePlacement(
@@ -21,11 +23,17 @@ function compareByCriterion(
 ): number {
   switch (criterion) {
     case "TOTAL_POINTS":
-      return compareDescending(left.totalPoints, right.totalPoints);
+      return compareDescending(
+        toScoreUnits(left.totalPoints),
+        toScoreUnits(right.totalPoints),
+      );
     case "WWCD":
       return compareDescending(left.wwcd, right.wwcd);
     case "PLACEMENT_POINTS":
-      return compareDescending(left.placementPoints, right.placementPoints);
+      return compareDescending(
+        toScoreUnits(left.placementPoints),
+        toScoreUnits(right.placementPoints),
+      );
     case "TOTAL_KILLS":
       return compareDescending(left.totalKills, right.totalKills);
     case "BEST_PLACEMENT":

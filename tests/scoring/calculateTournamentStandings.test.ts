@@ -235,4 +235,182 @@ describe("calculateTournamentStandings", () => {
       totalPoints: 15,
     });
   });
+
+  it("makes 0.1 plus 0.2 competitively equal to 0.3", () => {
+    const standings = calculateTournamentStandings(
+      [
+        match("match-1", 1, [
+          result("team-a", 1, 2),
+          result("team-b", 2, 0),
+        ]),
+      ],
+      {
+        placementPoints: { 1: 0.1, 2: 0.3 },
+        pointsPerKill: 0.1,
+        tiebreakers: [],
+      },
+    );
+
+    expect(standings.map(({ teamId, rank, totalPoints }) => ({
+      teamId,
+      rank,
+      totalPoints,
+    }))).toEqual([
+      { teamId: "team-a", rank: 1, totalPoints: 0.3 },
+      { teamId: "team-b", rank: 1, totalPoints: 0.3 },
+    ]);
+  });
+
+  it("makes three 0.1 finish values competitively equal to 0.3", () => {
+    const standings = calculateTournamentStandings(
+      [
+        match("match-1", 1, [
+          result("team-a", 1, 3),
+          result("team-b", 2, 0),
+        ]),
+      ],
+      {
+        placementPoints: { 1: 0, 2: 0.3 },
+        pointsPerKill: 0.1,
+        tiebreakers: [],
+      },
+    );
+
+    expect(standings).toMatchObject([
+      { teamId: "team-a", rank: 1, killPoints: 0.3, totalPoints: 0.3 },
+      { teamId: "team-b", rank: 1, killPoints: 0, totalPoints: 0.3 },
+    ]);
+  });
+
+  it("accumulates repeated 0.1 placement scores without drift", () => {
+    const matches = Array.from({ length: 30 }, (_, index) =>
+      match(`match-${index + 1}`, index + 1, [
+        result("team-a", 1, 0),
+        result("team-b", 2, 0),
+      ]),
+    );
+
+    const standings = calculateTournamentStandings(matches, {
+      placementPoints: { 1: 0.1, 2: 0 },
+      pointsPerKill: 0,
+      tiebreakers: [],
+    });
+
+    expect(standings[0]).toMatchObject({
+      teamId: "team-a",
+      matchesPlayed: 30,
+      placementPoints: 3,
+      totalPoints: 3,
+    });
+    expect(JSON.stringify(standings)).not.toContain("00000000000000004");
+  });
+
+  it("accumulates repeated 0.25 scores exactly", () => {
+    const matches = Array.from({ length: 7 }, (_, index) =>
+      match(`match-${index + 1}`, index + 1, [
+        result("team-a", 1, 0),
+        result("team-b", 2, 0),
+      ]),
+    );
+
+    const standings = calculateTournamentStandings(matches, {
+      placementPoints: { 1: 0.25, 2: 0 },
+      pointsPerKill: 0,
+      tiebreakers: [],
+    });
+
+    expect(standings[0]).toMatchObject({
+      teamId: "team-a",
+      placementPoints: 1.75,
+      totalPoints: 1.75,
+    });
+  });
+
+  it("uses exact decimal totals before applying configured tiebreakers", () => {
+    const standings = calculateTournamentStandings(
+      [
+        match("match-1", 1, [
+          result("team-a", 1, 0),
+          result("team-b", 2, 1),
+        ]),
+      ],
+      {
+        placementPoints: { 1: 0.2, 2: 0.1 },
+        pointsPerKill: 0.1,
+        tiebreakers: ["PLACEMENT_POINTS"],
+      },
+    );
+
+    expect(standings).toMatchObject([
+      { teamId: "team-a", rank: 1, totalPoints: 0.2 },
+      { teamId: "team-b", rank: 2, totalPoints: 0.2 },
+    ]);
+  });
+
+  it("accumulates decimal placement, finish, bonus, and penalty values across matches", () => {
+    const decimalConfig: ScoringConfig = {
+      placementPoints: { 1: 0.25, 2: 0.5 },
+      pointsPerKill: 0.1,
+      tiebreakers: ["TOTAL_KILLS"],
+    };
+    const standings = calculateTournamentStandings(
+      [
+        match("match-1", 1, [
+          { ...result("team-a", 1, 5), bonusPoints: 1.25 },
+          result("team-b", 2, 0),
+        ]),
+        match("match-2", 2, [
+          { ...result("team-a", 2, 2), penaltyPoints: 0.2 },
+          result("team-b", 1, 0),
+        ]),
+        match("match-3", 3, [
+          result("team-a", 1, 10),
+          result("team-b", 2, 0),
+        ]),
+      ],
+      decimalConfig,
+    );
+
+    expect(standings.find(({ teamId }) => teamId === "team-a")).toMatchObject({
+      matchesPlayed: 3,
+      placementPoints: 1,
+      killPoints: 1.7,
+      bonusPoints: 1.25,
+      penaltyPoints: 0.2,
+      totalPoints: 3.75,
+    });
+  });
+
+  it("keeps explicit-zero DNP at zero while PLAYED with zero finishes still counts", () => {
+    const dnp: MatchResult = {
+      teamId: "team-a",
+      placement: null,
+      kills: null,
+      didNotParticipate: true,
+      bonusPoints: 0,
+      penaltyPoints: 0,
+    };
+    const standings = calculateTournamentStandings(
+      [match("match-1", 1, [dnp, result("team-b", 1, 0)])],
+      {
+        placementPoints: { 1: 0.25 },
+        pointsPerKill: 0.1,
+        tiebreakers: [],
+      },
+    );
+
+    expect(standings.find(({ teamId }) => teamId === "team-a")).toMatchObject({
+      matchesPlayed: 0,
+      placementPoints: 0,
+      killPoints: 0,
+      bonusPoints: 0,
+      penaltyPoints: 0,
+      totalPoints: 0,
+    });
+    expect(standings.find(({ teamId }) => teamId === "team-b")).toMatchObject({
+      matchesPlayed: 1,
+      killPoints: 0,
+      totalPoints: 0.25,
+    });
+  });
 });
