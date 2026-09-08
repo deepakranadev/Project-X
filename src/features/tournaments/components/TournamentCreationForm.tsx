@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type FormEvent } from "react";
+import { type ChangeEvent } from "react";
 
 import {
   MAX_ORGANIZER_NAME_LENGTH,
@@ -24,28 +24,15 @@ export function TournamentCreationForm({
   onCreated,
 }: TournamentCreationFormProps) {
   const controller = useTournamentCreation(repository, onCreated);
+  const { formError, formik, logos } = controller;
 
   function handleLogoChange(event: ChangeEvent<HTMLInputElement>, field: TournamentLogoField) {
     const file = event.currentTarget.files?.[0] ?? null;
     if (!controller.selectLogo(field, file)) event.currentTarget.value = "";
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (controller.isSaving) return;
-
-    const formData = new FormData(event.currentTarget);
-    void controller.submit({
-      name: String(formData.get("name") ?? ""),
-      game: String(formData.get("game") ?? ""),
-      organizerName: String(formData.get("organizerName") ?? ""),
-    });
-  }
-
-  const { clearError, errors, isSaving, logos } = controller;
-
   return (
-    <form className="panel space-y-5 p-5 sm:p-7" onSubmit={handleSubmit} noValidate>
+    <form className="panel space-y-5 p-5 sm:p-7" onSubmit={formik.handleSubmit} noValidate>
       <div>
         <label className="field-label" htmlFor="name">
           Tournament name
@@ -53,19 +40,18 @@ export function TournamentCreationForm({
         <input
           className="field-control"
           id="name"
-          name="name"
           placeholder="e.g. Sunday Showdown"
           autoComplete="off"
           maxLength={MAX_TOURNAMENT_NAME_LENGTH}
-          aria-invalid={Boolean(errors.name)}
-          aria-describedby={errors.name ? "name-error" : undefined}
-          onChange={() => clearError("name")}
+          aria-invalid={Boolean(formik.touched.name && formik.errors.name)}
+          aria-describedby={formik.touched.name && formik.errors.name ? "name-error" : undefined}
           required
           autoFocus
+          {...formik.getFieldProps("name")}
         />
-        {errors.name ? (
+        {formik.touched.name && formik.errors.name ? (
           <p className="field-error" id="name-error">
-            {errors.name}
+            {formik.errors.name as string}
           </p>
         ) : null}
       </div>
@@ -74,10 +60,10 @@ export function TournamentCreationForm({
         <label className="field-label" htmlFor="game">
           Game
         </label>
-        <select className="field-control" id="game" name="game" defaultValue="BGMI">
+        <select className="field-control" id="game" {...formik.getFieldProps("game")}>
           <option value="BGMI">BGMI</option>
         </select>
-        {errors.game ? <p className="field-error">{errors.game}</p> : null}
+        {formik.touched.game && formik.errors.game ? <p className="field-error">{formik.errors.game as string}</p> : null}
       </div>
 
       <div>
@@ -102,8 +88,8 @@ export function TournamentCreationForm({
         <p className="mt-2 text-xs text-slate-500" id="tournamentLogo-hint">
           Maximum {TOURNAMENT_LOGO_FILE_SIZE_LIMIT_MB} MB
         </p>
-        {errors.tournamentLogo ? (
-          <p className="field-error">{errors.tournamentLogo}</p>
+        {formik.errors.tournamentLogo ? (
+          <p className="field-error">{formik.errors.tournamentLogo as string}</p>
         ) : null}
       </div>
 
@@ -114,15 +100,14 @@ export function TournamentCreationForm({
         <input
           className="field-control"
           id="organizerName"
-          name="organizerName"
           placeholder="e.g. Nova Esports"
           autoComplete="organization"
           maxLength={MAX_ORGANIZER_NAME_LENGTH}
-          aria-invalid={Boolean(errors.organizerName)}
-          onChange={() => clearError("organizerName")}
+          aria-invalid={Boolean(formik.touched.organizerName && formik.errors.organizerName)}
+          {...formik.getFieldProps("organizerName")}
         />
-        {errors.organizerName ? (
-          <p className="field-error">{errors.organizerName}</p>
+        {formik.touched.organizerName && formik.errors.organizerName ? (
+          <p className="field-error">{formik.errors.organizerName as string}</p>
         ) : null}
       </div>
 
@@ -148,24 +133,24 @@ export function TournamentCreationForm({
         <p className="mt-2 text-xs text-slate-500" id="organizerLogo-hint">
           Maximum {TOURNAMENT_LOGO_FILE_SIZE_LIMIT_MB} MB
         </p>
-        {errors.organizerLogo ? (
-          <p className="field-error">{errors.organizerLogo}</p>
+        {formik.errors.organizerLogo ? (
+          <p className="field-error">{formik.errors.organizerLogo as string}</p>
         ) : null}
       </div>
 
-      {errors.form ? (
+      {formError ? (
         <p className="field-error rounded-lg border border-red-400/20 bg-red-400/5 p-3" role="alert">
-          {errors.form}
+          {formError}
         </p>
       ) : null}
 
       <button
         className="primary-action mt-2 w-full disabled:cursor-wait disabled:opacity-70"
         type="submit"
-        disabled={isSaving}
+        disabled={formik.isSubmitting}
       >
-        {isSaving ? "Saving…" : "Create Tournament"}
-        <span aria-hidden="true">{isSaving ? "" : "→"}</span>
+        {formik.isSubmitting ? "Saving…" : "Create Tournament"}
+        <span aria-hidden="true">{formik.isSubmitting ? "" : "→"}</span>
       </button>
     </form>
   );

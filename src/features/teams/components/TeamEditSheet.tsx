@@ -2,7 +2,6 @@
 
 import {
   type ChangeEvent,
-  type FormEvent,
   useEffect,
 } from "react";
 
@@ -41,7 +40,7 @@ export function TeamEditSheet({
     onDeleted,
     onClose,
   );
-  const { errors, isDeleting, isSaving, logo } = controller;
+  const { formError, formik, isDeleting, isSaving, logo } = controller;
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
@@ -55,11 +54,6 @@ export function TeamEditSheet({
   function handleLogoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0] ?? null;
     if (!controller.selectLogo(file)) event.currentTarget.value = "";
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void controller.save(new FormData(event.currentTarget));
   }
 
   return (
@@ -91,7 +85,7 @@ export function TeamEditSheet({
           </button>
         </div>
 
-        <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+        <form className="mt-6 space-y-5" onSubmit={formik.handleSubmit} noValidate>
           <div>
             <label className="field-label" htmlFor="editTeamName">
               Team name
@@ -99,14 +93,13 @@ export function TeamEditSheet({
             <input
               className="field-control"
               id="editTeamName"
-              name="name"
-              defaultValue={team.name}
               maxLength={MAX_TEAM_NAME_LENGTH}
               required
               autoFocus
-              aria-invalid={Boolean(errors.name)}
+              aria-invalid={Boolean(formik.touched.name && formik.errors.name)}
+              {...formik.getFieldProps("name")}
             />
-            {errors.name ? <p className="field-error">{errors.name}</p> : null}
+            {formik.touched.name && formik.errors.name ? <p className="field-error">{formik.errors.name as string}</p> : null}
           </div>
 
           <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
@@ -117,14 +110,13 @@ export function TeamEditSheet({
               <input
                 className="field-control"
                 id="editTeamShortName"
-                name="shortName"
-                defaultValue={team.shortName ?? ""}
                 maxLength={MAX_TEAM_SHORT_NAME_LENGTH}
                 placeholder="e.g. SOUL"
-                aria-invalid={Boolean(errors.shortName)}
+                aria-invalid={Boolean(formik.touched.shortName && formik.errors.shortName)}
+                {...formik.getFieldProps("shortName")}
               />
-              {errors.shortName ? (
-                <p className="field-error">{errors.shortName}</p>
+              {formik.touched.shortName && formik.errors.shortName ? (
+                <p className="field-error">{formik.errors.shortName as string}</p>
               ) : null}
             </div>
             <div>
@@ -134,17 +126,16 @@ export function TeamEditSheet({
               <input
                 className="field-control tabular-nums"
                 id="editTeamSlot"
-                name="slotNumber"
                 type="number"
                 inputMode="numeric"
                 min={1}
                 max={MAX_TEAM_SLOT_NUMBER}
                 step={1}
-                defaultValue={team.slotNumber ?? ""}
-                aria-invalid={Boolean(errors.slotNumber)}
+                aria-invalid={Boolean(formik.touched.slotNumber && formik.errors.slotNumber)}
+                {...formik.getFieldProps("slotNumber")}
               />
-              {errors.slotNumber ? (
-                <p className="field-error">{errors.slotNumber}</p>
+              {formik.touched.slotNumber && formik.errors.slotNumber ? (
+                <p className="field-error">{formik.errors.slotNumber as string}</p>
               ) : null}
             </div>
           </div>
@@ -188,15 +179,15 @@ export function TeamEditSheet({
             <p className="mt-2 text-xs text-slate-500">
               Maximum {TEAM_LOGO_FILE_SIZE_LIMIT_MB} MB
             </p>
-            {errors.logo ? <p className="field-error">{errors.logo}</p> : null}
+            {formik.errors.logo ? <p className="field-error">{formik.errors.logo as string}</p> : null}
           </div>
 
-          {errors.form ? (
+          {formError ? (
             <p
               className="field-error rounded-lg border border-red-400/20 bg-red-400/5 p-3"
               role="alert"
             >
-              {errors.form}
+              {formError}
             </p>
           ) : null}
 

@@ -1,7 +1,5 @@
 "use client";
 
-import { type FormEvent } from "react";
-
 import type { ScoringConfig } from "@/domain/scoring/types";
 import { useScoringConfiguration } from "@/features/scoring/useScoringConfiguration";
 import type { GuestTournamentRepository } from "@/features/tournaments/tournamentRepository";
@@ -29,14 +27,9 @@ export function ScoringConfiguration({
     repository,
     onSaved,
   );
-  const { applyChange, draft, finishError, generalIssues, isDirty, isSaving,
+  const { applyChange, draft, finishError, formik, generalIssues, isDirty, isSaving,
     placementErrors, saveError, saved, selectCustom, selectStandardPreset,
     tiebreakError } = controller;
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void controller.save();
-  }
 
   return (
     <section className="mt-10 scroll-mt-4 sm:mt-14" id="scoring">
@@ -63,7 +56,7 @@ export function ScoringConfiguration({
         </span>
       </div>
 
-      <form className="panel mt-5 overflow-hidden" onSubmit={handleSubmit} noValidate>
+      <form className="panel mt-5 overflow-hidden" onSubmit={formik.handleSubmit} noValidate>
         <div className="border-b border-white/8 p-5 sm:p-6">
           <span className="field-label">Scoring rules</span>
           <div className="grid grid-cols-2 gap-2" role="group" aria-label="Scoring preset">

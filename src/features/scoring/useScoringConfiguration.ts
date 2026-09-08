@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useFormik } from "formik";
+import { useEffect, useRef, useState, useMemo } from "react";
 
 import type { ScoringConfig } from "@/domain/scoring/types";
 import { createBgmiStandardScoringConfig } from "@/domain/tournaments/scoringPresets";
@@ -11,7 +12,6 @@ import {
   scoringConfigToDraft,
   scoringDraftToConfig,
   type ScoringConfigDraft,
-  type ScoringDraftIssue,
 } from "./scoringConfigDraft";
 
 function updateDraft(
@@ -27,91 +27,105 @@ export function useScoringConfiguration(
   repository: GuestTournamentRepository,
   onSaved: (tournament: GuestTournament) => void,
 ) {
-  const [draft, setDraft] = useState(() => scoringConfigToDraft(initialConfig));
-  const [issues, setIssues] = useState<readonly ScoringDraftIssue[]>([]);
-  const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const isSaving = useRef(false);
+  const [isSavingState, setIsSavingState] = useState(false);
+
+  const formik = useFormik({
+    enableReinitialize: true,
+    initialValues: scoringConfigToDraft(initialConfig),
+    validate: (values) => {
+      const mapping = scoringDraftToConfig(values as ScoringConfigDraft);
+      if (mapping.valid) return {};
+      const formikErrors: Record<string, string> = {};
+      for (const issue of mapping.issues) {
+        formikErrors[issue.field] = issue.message;
+      }
+      return formikErrors;
+    },
+    onSubmit: async (values, { resetForm }) => {
+      if (isSaving.current) return;
+      
+      const mapping = scoringDraftToConfig(values);
+      if (!mapping.valid) return;
+
+      isSaving.current = true;
+      setIsSavingState(true);
+      setSaveError(null);
+      try {
+        const tournament = await repository.updateTournament(tournamentId, {
+          scoringConfig: mapping.config,
+        });
+        if (!tournament) throw new Error("This tournament is no longer saved on this device.");
+
+        resetForm({ values: scoringConfigToDraft(tournament.scoringConfig) });
+        setSaved(true);
+        onSaved(tournament);
+      } catch {
+        setSaveError("Scoring could not be saved. Check browser storage permissions and try again.");
+      } finally {
+        isSaving.current = false;
+        setIsSavingState(false);
+      }
+    },
+  });
+
+  const { dirty, values: draft, errors } = formik;
 
   useEffect(() => {
-    if (!isDirty) return;
+    if (!dirty) return;
     function warnBeforeLeaving(event: BeforeUnloadEvent) {
       event.preventDefault();
     }
     window.addEventListener("beforeunload", warnBeforeLeaving);
     return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
-  }, [isDirty]);
+  }, [dirty]);
 
   function applyChange(changes: Partial<ScoringConfigDraft>) {
-    setDraft((current) => updateDraft(current, changes));
-    setIssues([]);
+    void formik.setValues(updateDraft(draft, changes));
     setSaveError(null);
     setSaved(false);
-    setIsDirty(true);
   }
 
   function selectStandardPreset() {
-    setDraft(scoringConfigToDraft(createBgmiStandardScoringConfig()));
-    setIssues([]);
+    void formik.setValues(scoringConfigToDraft(createBgmiStandardScoringConfig()));
     setSaveError(null);
     setSaved(false);
-    setIsDirty(true);
   }
 
   function selectCustom() {
-    setDraft((current) => ({ ...current, preset: "CUSTOM" }));
+    void formik.setValues({ ...draft, preset: "CUSTOM" });
     setSaved(false);
   }
 
-  async function save() {
-    if (isSaving) return;
-    const mapping = scoringDraftToConfig(draft);
-    if (!mapping.valid) {
-      setIssues(mapping.issues);
-      setSaved(false);
-      return;
-    }
-
-    setIsSaving(true);
-    setIssues([]);
-    setSaveError(null);
-    try {
-      const tournament = await repository.updateTournament(tournamentId, {
-        scoringConfig: mapping.config,
-      });
-      if (!tournament) throw new Error("This tournament is no longer saved on this device.");
-      setDraft(scoringConfigToDraft(tournament.scoringConfig));
-      setIsDirty(false);
-      setSaved(true);
-      onSaved(tournament);
-    } catch {
-      setSaveError("Scoring could not be saved. Check browser storage permissions and try again.");
-    } finally {
-      setIsSaving(false);
-    }
-  }
+  const generalIssues = useMemo(() => {
+    return Object.entries(errors)
+      .filter(([field]) => !field.startsWith("placementPoints.") && field !== "pointsPerFinish" && field !== "tiebreakers")
+      .map(([field, message]) => ({ field, message: message as string }));
+  }, [errors]);
 
   const placementErrors: Record<number, string | undefined> = {};
-  for (const issue of issues) {
-    if (!issue.field.startsWith("placementPoints.")) continue;
-    const placement = Number(issue.field.split(".").at(-1));
-    if (Number.isInteger(placement)) placementErrors[placement] = issue.message;
+  const formikErrorsAny = errors as Record<string, unknown>;
+  for (const field of Object.keys(errors)) {
+    if (!field.startsWith("placementPoints.")) continue;
+    const placement = Number(field.split(".").at(-1));
+    if (Number.isInteger(placement)) placementErrors[placement] = formikErrorsAny[field] as string;
   }
 
   return {
     applyChange,
     draft,
-    finishError: issues.find((issue) => issue.field === "pointsPerFinish")?.message,
-    generalIssues: issues.filter((issue) => !issue.field.startsWith("placementPoints.") && issue.field !== "pointsPerFinish" && issue.field !== "tiebreakers"),
-    isDirty,
-    isSaving,
+    finishError: errors.pointsPerFinish as string | undefined,
+    formik,
+    generalIssues,
+    isDirty: dirty,
+    isSaving: isSavingState,
     placementErrors,
-    save,
     saveError,
     saved,
     selectCustom,
     selectStandardPreset,
-    tiebreakError: issues.find((issue) => issue.field === "tiebreakers")?.message,
+    tiebreakError: errors.tiebreakers as string | undefined,
   };
 }

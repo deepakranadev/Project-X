@@ -1,20 +1,17 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useFormik } from "formik";
+import { useRef, useState } from "react";
 
 import { createGuestTournament } from "./createGuestTournament";
 import type { GuestTournamentRepository } from "./tournamentRepository";
-import type { CreateTournamentInput, GuestTournament } from "./types";
+import type { GuestTournament } from "./types";
 import {
   TournamentValidationError,
-  type TournamentValidationField,
   validateTournamentImage,
 } from "./validation";
 
 export type TournamentLogoField = "tournamentLogo" | "organizerLogo";
-export type TournamentCreationErrors = Partial<
-  Record<TournamentValidationField | "form", string>
->;
 
 function storageErrorMessage(error: unknown): string {
   if (error instanceof DOMException && error.name === "QuotaExceededError") {
@@ -30,64 +27,64 @@ export function useTournamentCreation(
   const [logos, setLogos] = useState<
     Record<TournamentLogoField, NonNullable<GuestTournament["tournamentLogo"]> | null>
   >({ tournamentLogo: null, organizerLogo: null });
-  const [errors, setErrors] = useState<TournamentCreationErrors>({});
-  const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const isSaving = useRef(false);
+  const [isSavingState, setIsSavingState] = useState(false);
 
-  const clearError = useCallback((field: TournamentValidationField) => {
-    setErrors((current) => ({ ...current, [field]: undefined, form: undefined }));
-  }, []);
-
-  const selectLogo = useCallback(
-    (field: TournamentLogoField, file: File | null): boolean => {
-      if (!file) {
-        setLogos((current) => ({ ...current, [field]: null }));
-        clearError(field);
-        return true;
-      }
-      const image = { blob: file, fileName: file.name };
-      const issues = validateTournamentImage(image, field);
-      if (issues.length > 0) {
-        setLogos((current) => ({ ...current, [field]: null }));
-        setErrors((current) => ({
-          ...current,
-          [field]: issues[0]?.message,
-          form: undefined,
-        }));
-        return false;
-      }
-      setLogos((current) => ({ ...current, [field]: image }));
-      clearError(field);
-      return true;
+  const formik = useFormik({
+    initialValues: {
+      name: "",
+      game: "BGMI",
+      organizerName: "",
+      tournamentLogo: undefined as unknown,
+      organizerLogo: undefined as unknown,
     },
-    [clearError],
-  );
-
-  const submit = useCallback(
-    async (input: Omit<CreateTournamentInput, TournamentLogoField>) => {
-      if (isSaving) return;
-      setIsSaving(true);
-      setErrors({});
+    onSubmit: async (values, { setErrors }) => {
+      if (isSaving.current) return;
+      isSaving.current = true;
+      setIsSavingState(true);
+      setFormError(null);
       try {
         const tournament = await createGuestTournament(
-          { ...input, ...logos },
+          { ...values, ...logos },
           repository,
         );
         onCreated(tournament);
       } catch (error) {
         if (error instanceof TournamentValidationError) {
-          const validationErrors: TournamentCreationErrors = {};
+          const validationErrors: Record<string, string> = {};
           for (const issue of error.issues) {
             validationErrors[issue.field] ??= issue.message;
           }
           setErrors(validationErrors);
         } else {
-          setErrors({ form: storageErrorMessage(error) });
+          setFormError(storageErrorMessage(error));
         }
-        setIsSaving(false);
+      } finally {
+        isSaving.current = false;
+        setIsSavingState(false);
       }
     },
-    [isSaving, logos, onCreated, repository],
-  );
+  });
 
-  return { clearError, errors, isSaving, logos, selectLogo, submit };
+  function selectLogo(field: TournamentLogoField, file: File | null): boolean {
+    if (!file) {
+      setLogos((current) => ({ ...current, [field]: null }));
+      formik.setFieldError(field, undefined);
+      return true;
+    }
+    const image = { blob: file, fileName: file.name };
+    const issues = validateTournamentImage(image, field);
+    if (issues.length > 0) {
+      setLogos((current) => ({ ...current, [field]: null }));
+      formik.setFieldError(field, issues[0]?.message);
+      setFormError(null);
+      return false;
+    }
+    setLogos((current) => ({ ...current, [field]: image }));
+    formik.setFieldError(field, undefined);
+    return true;
+  }
+
+  return { formError, formik, isSaving: isSavingState, logos, selectLogo };
 }

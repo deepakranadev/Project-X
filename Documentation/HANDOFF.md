@@ -1,27 +1,27 @@
 # Agent Handoff
 
 Active task: NONE
-Base commit: 0ca6d25 (R2G Completion)
+Base commit: 7667aad (docs: add cross-agent development context)
 Current branch: main
-Working tree status: Clean
+Working tree status: Dirty (Approved R2H changes awaiting commit)
 
 ## Work completed in current task
-R2G is complete and committed.
+R2H ✅ Formik Migration for Standard Forms is complete and approved.
 
 ## Work currently in progress
-There is no unfinished implementation.
+None. R2I has not started.
 
 ## Work not started
-R2H has not started.
-
-## Files changed
-None in current task.
+R2I has not started.
 
 ## Important implementation decisions
-None in current task.
+- Formik handles Tournament Creation, Team Edit, and Scoring Configuration.
+- MatchEntry and Team Bulk Entry remain non-Formik.
+- Explicit single-flight guards protect async form mutations.
+- IndexedDB remains v4.
 
 ## Tests currently passing
-All tests passing.
+All tests passing (263/263 Vitest, 7/7 Playwright).
 
 ## Tests currently failing
 None.
@@ -30,13 +30,13 @@ None.
 None.
 
 ## Do not redo/revert
-Do not redo or revert R2G implementation.
+The working tree contains the approved R2H changes awaiting commit. Do not alter them.
 
 ## Exact recommended next action
-Wait for explicit R2H instruction.
+Wait for the user to commit the changes and provide the R2I specification.
 
 ## Scope warning
-Do not begin R2H until the specification is provided and authorized.
+Do not begin R2I until the specification is provided and authorized.
 
 ---
 

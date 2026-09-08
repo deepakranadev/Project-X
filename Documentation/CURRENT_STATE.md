@@ -24,7 +24,14 @@ Ensured pure domain layer with zero outwards dependencies. Repositories export i
 R2G ✅ Feature orchestration, hooks, decomposition and infrastructure decoupling
 Feature React components now have zero concrete infrastructure imports. UI orchestration logic decoupled into feature-owned hooks. All production files are now under 250 lines and canonical workspace state drives updates deterministically.
 
-R2H = NEXT, NOT STARTED
+R2H ✅ Formik Migration for Standard Forms
+Formik adopted only for Tournament Creation, Team Edit, and Scoring Configuration.
+- MatchEntry remains non-Formik
+- Team Bulk Entry remains non-Formik
+- explicit single-flight guards protect async form mutations
+- R2I is NEXT and NOT STARTED
+
+R2I = NEXT, NOT STARTED
 
 ## Current Important Implementation Facts
 - IndexedDB schema version 4
@@ -38,15 +45,14 @@ R2H = NEXT, NOT STARTED
 - Current largest production files: `TournamentWorkspaceScreen.tsx` (227 lines), `TeamEditSheet.tsx` (221 lines), `indexedDbMatchRepository.ts` (218 lines), `indexedDbTeamRepository.ts` (216 lines), `guestDatabase.ts` (206 lines)
 - No architecture cycles
 - Domain has no outward/browser dependencies
-- No Formik yet
+- Formik handles standard forms only (no Formik in MatchEntry or TeamBulkForm)
 - No shadcn yet
 - No authentication
 - No cloud persistence
 - No graphics engine
 - No OCR/AI implementation
 
-## Verified Test Counts (R2G Completion Checkpoint)
-- **Vitest:** 248 tests pass across 33 test files.
-- **Architecture tests:** 9 tests pass (part of the 248 count above).
+- **Vitest:** 263 tests pass across 37 test files.
+- **Architecture tests:** 9 tests pass (part of the 263 count above).
 - **Playwright E2E:** 7 tests pass.
 - **Production Build:** Successfully completed, generating 4 routes.
