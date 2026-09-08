@@ -109,12 +109,12 @@ describe("overall standings persistence workflow", () => {
     ]);
     await teams.createTeam(team("new-team", 4));
 
-    const load = () =>
+    const load = async () =>
       loadGuestOverallStandings({
         tournament,
+        teams: await teams.listTeamsByTournament(tournament.id),
         matchRepository: matches,
         matchResultRepository: results,
-        teamRepository: teams,
       });
     const finalized = await load();
     expect(finalized).toMatchObject({

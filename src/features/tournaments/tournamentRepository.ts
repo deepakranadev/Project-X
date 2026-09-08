@@ -1,5 +1,7 @@
 import type { Tournament } from "@/domain/tournaments/types";
 
+import type { GuestTournament } from "./types";
+
 export type TournamentUpdate<Image = unknown> = Partial<
   Pick<
     Tournament<Image>,
@@ -22,3 +24,7 @@ export interface TournamentRepository<Image = unknown> {
   listTournaments(): Promise<readonly Tournament<Image>[]>;
   deleteTournament(id: string): Promise<void>;
 }
+
+export type GuestTournamentRepository = TournamentRepository<
+  NonNullable<GuestTournament["tournamentLogo"]>
+>;

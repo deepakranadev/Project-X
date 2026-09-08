@@ -107,9 +107,9 @@ describe("team deletion with finalized history", () => {
     );
     const standingsBefore = await loadGuestOverallStandings({
       tournament,
+      teams: await teams.listTeamsByTournament(tournament.id),
       matchRepository: matches,
       matchResultRepository: results,
-      teamRepository: teams,
     });
 
     await expect(teams.deleteTeam(tournament.id, "one")).rejects.toBeInstanceOf(
@@ -128,9 +128,9 @@ describe("team deletion with finalized history", () => {
     await expect(
       loadGuestOverallStandings({
         tournament,
+        teams: await teams.listTeamsByTournament(tournament.id),
         matchRepository: matches,
         matchResultRepository: results,
-        teamRepository: teams,
       }),
     ).resolves.toEqual(standingsBefore);
     expect(matchBefore?.status).toBe("FINALIZED");

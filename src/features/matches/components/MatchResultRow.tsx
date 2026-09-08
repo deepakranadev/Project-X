@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import { memo, type KeyboardEvent } from "react";
 
 import type { StoredMatchResult } from "@/domain/matches/types";
 import type { Team } from "@/domain/teams/types";
@@ -11,14 +11,15 @@ interface MatchResultRowProps {
   readonly hasIssue: boolean;
   readonly disabled: boolean;
   readonly onNumberChange: (
+    resultId: string,
     field: "placement" | "kills",
     rawValue: string,
   ) => void;
-  readonly onToggleDnp: () => void;
+  readonly onToggleDnp: (resultId: string) => void;
   readonly onInputKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
 }
 
-export function MatchResultRow({
+export const MatchResultRow = memo(function MatchResultRow({
   result,
   team,
   hasIssue,
@@ -57,7 +58,7 @@ export function MatchResultRow({
         disabled={disabled || isDnp || !team}
         value={result.placement ?? ""}
         onChange={(event) =>
-          onNumberChange("placement", event.currentTarget.value)
+          onNumberChange(result.id, "placement", event.currentTarget.value)
         }
         onKeyDown={onInputKeyDown}
       />
@@ -72,7 +73,7 @@ export function MatchResultRow({
         aria-invalid={hasIssue}
         disabled={disabled || isDnp || !team}
         value={result.kills ?? ""}
-        onChange={(event) => onNumberChange("kills", event.currentTarget.value)}
+        onChange={(event) => onNumberChange(result.id, "kills", event.currentTarget.value)}
         onKeyDown={onInputKeyDown}
       />
       <button
@@ -85,10 +86,10 @@ export function MatchResultRow({
         aria-label={`${isDnp ? "Mark" : "Set"} ${teamName} ${isDnp ? "as played" : "as DNP"}`}
         aria-pressed={isDnp}
         disabled={disabled || !team}
-        onClick={onToggleDnp}
+        onClick={() => onToggleDnp(result.id)}
       >
         {isDnp ? "DNP" : "—"}
       </button>
     </div>
   );
-}
+});

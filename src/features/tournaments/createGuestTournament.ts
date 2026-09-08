@@ -5,8 +5,7 @@ import {
 } from "./validation";
 import { createBgmiStandardScoringConfig } from "@/domain/tournaments/scoringPresets";
 
-import type { TournamentRepository } from "./tournamentRepository";
-import type { PersistedImage } from "@/infrastructure/browser/persistedImage";
+import type { GuestTournamentRepository } from "./tournamentRepository";
 
 export interface TournamentCreationDependencies {
   readonly createId?: () => string;
@@ -23,7 +22,7 @@ function now(): string {
 
 export async function createGuestTournament(
   input: CreateTournamentInput,
-  repository: TournamentRepository<PersistedImage>,
+  repository: GuestTournamentRepository,
   dependencies: TournamentCreationDependencies = {},
 ): Promise<GuestTournament> {
   const validation = validateTournamentInput(input);

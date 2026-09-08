@@ -1,8 +1,16 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { TournamentCreationForm } from "@/features/tournaments/components/TournamentCreationForm";
 
+import { useClientTournamentRepository } from "../clientRepositoryComposition";
+
 export function CreateTournamentScreen() {
+  const router = useRouter();
+  const repository = useClientTournamentRepository();
+
   return (
     <div className="site-shell">
       <header className="mx-auto flex w-full max-w-3xl items-center px-5 py-5 sm:px-8">
@@ -23,7 +31,18 @@ export function CreateTournamentScreen() {
           </p>
         </div>
 
-        <TournamentCreationForm />
+        {repository ? (
+          <TournamentCreationForm
+            repository={repository}
+            onCreated={(tournament) =>
+              router.push(`/tournaments/${encodeURIComponent(tournament.id)}`)
+            }
+          />
+        ) : (
+          <p className="panel p-5 text-sm text-slate-400" role="status">
+            Opening tournament setup…
+          </p>
+        )}
       </main>
     </div>
   );

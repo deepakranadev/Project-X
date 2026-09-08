@@ -1,155 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-
-import type { TournamentMatch } from "@/domain/matches/types";
 import type { Team } from "@/domain/teams/types";
-import { createGuestMatchWithInitialResults } from "@/features/matches/createGuestMatch";
-import { getClientMatchLifecycleRepository } from "@/infrastructure/persistence/indexed-db/clientMatchLifecycleRepository";
-import { getClientMatchRepository } from "@/infrastructure/persistence/indexed-db/clientMatchRepository";
-import { getClientTeamRepository } from "@/infrastructure/persistence/indexed-db/clientTeamRepository";
+import type { MatchFeatureRepositories } from "@/features/matches/matchFeatureRepositories";
+import { useMatchManagement } from "@/features/matches/useMatchManagement";
 
 import { MatchEntry } from "./MatchEntry";
 
 interface MatchManagementProps {
   readonly tournamentId: string;
+  readonly teams: readonly Team[];
+  readonly repositories: MatchFeatureRepositories;
   readonly onMatchesChanged: () => void;
 }
 
 export function MatchManagement({
   tournamentId,
+  teams,
+  repositories,
   onMatchesChanged,
 }: MatchManagementProps) {
-  const [matches, setMatches] = useState<readonly TournamentMatch[]>([]);
-  const [teams, setTeams] = useState<readonly Team[]>([]);
-  const [activeMatch, setActiveMatch] = useState<TournamentMatch | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  const reload = useCallback(async () => {
-    const [savedMatches, roster] = await Promise.all([
-      getClientMatchRepository().listMatchesByTournament(tournamentId),
-      getClientTeamRepository().listTeamsByTournament(tournamentId),
-    ]);
-    setMatches(savedMatches);
-    setTeams(roster);
-    return { matches: savedMatches, teams: roster };
-  }, [tournamentId]);
-
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const [savedMatches, roster] = await Promise.all([
-          getClientMatchRepository().listMatchesByTournament(tournamentId),
-          getClientTeamRepository().listTeamsByTournament(tournamentId),
-        ]);
-        if (active) {
-          setMatches(savedMatches);
-          setTeams(roster);
-        }
-      } catch {
-        if (active) {
-          setError("Matches could not be opened. Check browser storage permissions and refresh.");
-        }
-      } finally {
-        if (active) setIsLoading(false);
-      }
-    }
-    void load();
-    return () => { active = false; };
-  }, [tournamentId]);
-
-  async function createMatch() {
-    if (isCreating) return;
-    setIsCreating(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const current = await reload();
-      if (current.teams.length === 0) {
-        setError("Add at least one team before creating a match.");
-        return;
-      }
-      const createdSnapshot = await createGuestMatchWithInitialResults({
-        tournamentId,
-        matchRepository: getClientMatchRepository(),
-        teamRepository: getClientTeamRepository(),
-        lifecycleRepository: getClientMatchLifecycleRepository(),
-      });
-      const created = createdSnapshot.match;
-      setMatches([...current.matches, created]);
-      setTeams(current.teams);
-      setActiveMatch(created);
-      setNotice(`Match ${created.matchNumber} created. Draft saved on this device.`);
-      onMatchesChanged();
-      window.setTimeout(() => {
-        document.getElementById("match-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 0);
-    } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "The match could not be created. Try again.");
-    } finally {
-      setIsCreating(false);
-    }
-  }
-
-  async function openMatch(match: TournamentMatch) {
-    try {
-      const current = await reload();
-      const latest = current.matches.find((candidate) => candidate.id === match.id);
-      if (!latest) throw new Error("This match is no longer saved on this device.");
-      let openedMatch = latest;
-      if (latest.status === "FINALIZED") {
-        const reopened = await getClientMatchLifecycleRepository().reopenMatch(
-          tournamentId,
-          latest.id,
-        );
-        openedMatch = reopened;
-        setMatches((saved) =>
-          saved.map((candidate) =>
-            candidate.id === reopened.id ? reopened : candidate,
-          ),
-        );
-        setNotice(
-          `Match ${reopened.matchNumber} reopened as a draft. Finalize it again after reviewing changes.`,
-        );
-        onMatchesChanged();
-      }
-      setActiveMatch(openedMatch);
-      setError(null);
-    } catch (openError) {
-      setError(openError instanceof Error ? openError.message : "The match could not be opened.");
-    }
-  }
-
-  async function deleteMatch(match: TournamentMatch) {
-    const confirmed = window.confirm(
-      `Delete Match ${match.matchNumber}? Its saved result draft will also be removed.`,
-    );
-    if (!confirmed) return;
-    try {
-      await getClientMatchRepository().deleteMatch(tournamentId, match.id);
-      setMatches((current) => current.filter((candidate) => candidate.id !== match.id));
-      if (activeMatch?.id === match.id) setActiveMatch(null);
-      setNotice(`Match ${match.matchNumber} and its results were deleted.`);
-      setError(null);
-      onMatchesChanged();
-    } catch {
-      setError("The match could not be deleted. Try again.");
-    }
-  }
-
-  function handleMatchChange(updated: TournamentMatch) {
-    setMatches((current) =>
-      current.map((match) => match.id === updated.id ? updated : match),
-    );
-    setActiveMatch((current) =>
-      current?.id === updated.id ? updated : current,
-    );
-    onMatchesChanged();
-  }
+  const controller = useMatchManagement(
+    tournamentId,
+    teams,
+    repositories,
+    onMatchesChanged,
+  );
+  const { activeMatch, error, isCreating, isLoading, matches, notice } = controller;
 
   return (
     <section className="mt-10 scroll-mt-4 sm:mt-14" id="matches">
@@ -165,7 +41,7 @@ export function MatchManagement({
           className="primary-action disabled:cursor-not-allowed disabled:opacity-50"
           type="button"
           disabled={isCreating || isLoading}
-          onClick={() => void createMatch()}
+          onClick={() => void controller.createMatch()}
         >
           {isCreating ? "Creating…" : "Create Match"}
         </button>
@@ -194,7 +70,7 @@ export function MatchManagement({
                   className="min-h-11 min-w-0 flex-1 text-left"
                   type="button"
                   aria-label={`Open Match ${match.matchNumber}`}
-                  onClick={() => void openMatch(match)}
+                  onClick={() => void controller.openMatch(match)}
                 >
                   <span className="block truncate text-sm font-black text-white">
                     {match.name || `Match ${match.matchNumber}`}
@@ -208,7 +84,7 @@ export function MatchManagement({
                   className="min-h-11 rounded-lg px-2 text-xs font-bold text-red-300 hover:bg-red-400/10"
                   type="button"
                   aria-label={`Delete Match ${match.matchNumber}`}
-                  onClick={() => void deleteMatch(match)}
+                  onClick={() => void controller.deleteMatch(match)}
                 >
                   Delete
                 </button>
@@ -224,8 +100,10 @@ export function MatchManagement({
             key={activeMatch.id}
             match={activeMatch}
             teams={teams}
-            onClose={() => setActiveMatch(null)}
-            onMatchChange={handleMatchChange}
+            lifecycleRepository={repositories.lifecycle}
+            resultRepository={repositories.results}
+            onClose={controller.closeActiveMatch}
+            onMatchChange={controller.handleMatchChange}
           />
         </div>
       ) : null}

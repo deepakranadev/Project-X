@@ -1,19 +1,16 @@
 "use client";
 
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent } from "react";
 
-import { validateBulkTeamNames } from "@/features/teams/parseBulkTeamNames";
-import type { Team } from "@/domain/teams/types";
-import {
-  createGuestTeamsFromText,
-  GuestTeamCreationError,
-} from "@/features/teams/createGuestTeams";
-import { getClientTeamRepository } from "@/infrastructure/persistence/indexed-db/clientTeamRepository";
+import type { GuestTeamRepository } from "@/features/teams/teamRepository";
+import type { GuestTeam } from "@/features/teams/types";
+import { useTeamBulkEntry } from "@/features/teams/useTeamBulkEntry";
 
 interface TeamBulkFormProps {
-  readonly existingTeams: readonly Team[];
+  readonly existingTeams: readonly GuestTeam[];
   readonly tournamentId: string;
-  readonly onCreated: () => Promise<void>;
+  readonly repository: GuestTeamRepository;
+  readonly onCreated: (teams: readonly GuestTeam[]) => void;
 }
 
 function teamCountLabel(count: number): string {
@@ -23,53 +20,22 @@ function teamCountLabel(count: number): string {
 export function TeamBulkForm({
   existingTeams,
   tournamentId,
+  repository,
   onCreated,
 }: TeamBulkFormProps) {
-  const [pastedNames, setPastedNames] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [serverErrors, setServerErrors] = useState<readonly string[]>([]);
-  const validation = useMemo(
-    () => validateBulkTeamNames(pastedNames, existingTeams),
-    [existingTeams, pastedNames],
+  const controller = useTeamBulkEntry(
+    tournamentId,
+    existingTeams,
+    repository,
+    onCreated,
   );
-  const visibleIssues = pastedNames.length > 0 || submitted
-    ? validation.issues.map((issue) => issue.message)
-    : [];
-  const errors = serverErrors.length > 0 ? serverErrors : visibleIssues;
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSaving) return;
-
-    setSubmitted(true);
-    setServerErrors([]);
-    if (validation.issues.length > 0) return;
-
-    setIsSaving(true);
-    try {
-      await createGuestTeamsFromText(
-        tournamentId,
-        pastedNames,
-        getClientTeamRepository(),
-      );
-      setPastedNames("");
-      setSubmitted(false);
-      await onCreated();
-    } catch (error) {
-      if (error instanceof GuestTeamCreationError) {
-        setServerErrors(error.issues.map((issue) => issue.message));
-      } else {
-        setServerErrors([
-          error instanceof Error
-            ? error.message
-            : "Teams could not be saved. Check browser storage and try again.",
-        ]);
-      }
-    } finally {
-      setIsSaving(false);
-    }
+    void controller.submit();
   }
+
+  const { errors, isSaving, pastedNames, validation } = controller;
 
   return (
     <form className="panel p-5 sm:p-6" onSubmit={handleSubmit} noValidate>
@@ -98,9 +64,7 @@ export function TeamBulkForm({
         autoComplete="off"
         spellCheck={false}
         onChange={(event) => {
-          setPastedNames(event.currentTarget.value);
-          setServerErrors([]);
-          setSubmitted(false);
+          controller.changePastedNames(event.currentTarget.value);
         }}
         onKeyDown={(event) => {
           if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {

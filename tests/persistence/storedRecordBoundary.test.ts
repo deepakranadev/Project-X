@@ -200,9 +200,9 @@ describe("IndexedDB runtime record boundary", () => {
     await expect(
       loadGuestOverallStandings({
         tournament,
+        teams: await teams.listTeamsByTournament(tournament.id),
         matchRepository: matches,
         matchResultRepository: results,
-        teamRepository: teams,
       }),
     ).rejects.toEqual(corruptError("MATCH_RESULT"));
     expect(calculateOverallStandings).not.toHaveBeenCalled();

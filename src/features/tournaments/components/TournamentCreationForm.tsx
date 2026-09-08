@@ -1,116 +1,48 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { type ChangeEvent, type FormEvent } from "react";
 
 import {
   MAX_ORGANIZER_NAME_LENGTH,
   MAX_TOURNAMENT_NAME_LENGTH,
 } from "@/domain/tournaments/validation";
+import type { GuestTournamentRepository } from "@/features/tournaments/tournamentRepository";
+import type { GuestTournament } from "@/features/tournaments/types";
 import {
-  TournamentValidationError,
-  type TournamentValidationField,
-  validateTournamentImage,
-} from "@/features/tournaments/validation";
-import { createGuestTournament } from "@/features/tournaments/createGuestTournament";
-import type { CreateTournamentInput } from "@/features/tournaments/types";
-import {
-  MAX_LOGO_FILE_SIZE_BYTES,
-  type PersistedImage,
-} from "@/infrastructure/browser/persistedImage";
-import { getClientTournamentRepository } from "@/infrastructure/persistence/indexed-db/clientTournamentRepository";
+  type TournamentLogoField,
+  useTournamentCreation,
+} from "@/features/tournaments/useTournamentCreation";
+import { TOURNAMENT_LOGO_FILE_SIZE_LIMIT_MB } from "@/features/tournaments/validation";
 
-type LogoField = "tournamentLogo" | "organizerLogo";
-type FormErrors = Partial<
-  Record<TournamentValidationField | "form", string>
->;
-
-function errorMessageForStorage(error: unknown): string {
-  if (error instanceof DOMException && error.name === "QuotaExceededError") {
-    return "This device is out of browser storage. Free some space, then try again.";
-  }
-
-  return "We could not save this tournament on your device. Check browser storage permissions and try again.";
+interface TournamentCreationFormProps {
+  readonly repository: GuestTournamentRepository;
+  readonly onCreated: (tournament: GuestTournament) => void;
 }
 
-export function TournamentCreationForm() {
-  const router = useRouter();
-  const [logos, setLogos] = useState<
-    Record<LogoField, PersistedImage | null>
-  >({
-    tournamentLogo: null,
-    organizerLogo: null,
-  });
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isSaving, setIsSaving] = useState(false);
+export function TournamentCreationForm({
+  repository,
+  onCreated,
+}: TournamentCreationFormProps) {
+  const controller = useTournamentCreation(repository, onCreated);
 
-  function clearError(field: TournamentValidationField): void {
-    setErrors((current) => ({ ...current, [field]: undefined, form: undefined }));
-  }
-
-  function handleLogoChange(
-    event: ChangeEvent<HTMLInputElement>,
-    field: LogoField,
-  ): void {
+  function handleLogoChange(event: ChangeEvent<HTMLInputElement>, field: TournamentLogoField) {
     const file = event.currentTarget.files?.[0] ?? null;
-    if (!file) {
-      setLogos((current) => ({ ...current, [field]: null }));
-      clearError(field);
-      return;
-    }
-
-    const image: PersistedImage = { blob: file, fileName: file.name };
-    const issues = validateTournamentImage(image, field);
-    if (issues.length > 0) {
-      setLogos((current) => ({ ...current, [field]: null }));
-      setErrors((current) => ({
-        ...current,
-        [field]: issues[0]?.message,
-        form: undefined,
-      }));
-      event.currentTarget.value = "";
-      return;
-    }
-
-    setLogos((current) => ({ ...current, [field]: image }));
-    clearError(field);
+    if (!controller.selectLogo(field, file)) event.currentTarget.value = "";
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSaving) return;
+    if (controller.isSaving) return;
 
     const formData = new FormData(event.currentTarget);
-    const input: CreateTournamentInput = {
+    void controller.submit({
       name: String(formData.get("name") ?? ""),
       game: String(formData.get("game") ?? ""),
-      tournamentLogo: logos.tournamentLogo,
       organizerName: String(formData.get("organizerName") ?? ""),
-      organizerLogo: logos.organizerLogo,
-    };
-
-    setIsSaving(true);
-    setErrors({});
-
-    try {
-      const tournament = await createGuestTournament(
-        input,
-        getClientTournamentRepository(),
-      );
-      router.push(`/tournaments/${encodeURIComponent(tournament.id)}`);
-    } catch (error) {
-      if (error instanceof TournamentValidationError) {
-        const validationErrors: FormErrors = {};
-        for (const issue of error.issues) {
-          validationErrors[issue.field] ??= issue.message;
-        }
-        setErrors(validationErrors);
-      } else {
-        setErrors({ form: errorMessageForStorage(error) });
-      }
-      setIsSaving(false);
-    }
+    });
   }
+
+  const { clearError, errors, isSaving, logos } = controller;
 
   return (
     <form className="panel space-y-5 p-5 sm:p-7" onSubmit={handleSubmit} noValidate>
@@ -168,7 +100,7 @@ export function TournamentCreationForm() {
           />
         </label>
         <p className="mt-2 text-xs text-slate-500" id="tournamentLogo-hint">
-          Maximum {MAX_LOGO_FILE_SIZE_BYTES / 1024 / 1024} MB
+          Maximum {TOURNAMENT_LOGO_FILE_SIZE_LIMIT_MB} MB
         </p>
         {errors.tournamentLogo ? (
           <p className="field-error">{errors.tournamentLogo}</p>
@@ -214,7 +146,7 @@ export function TournamentCreationForm() {
           />
         </label>
         <p className="mt-2 text-xs text-slate-500" id="organizerLogo-hint">
-          Maximum {MAX_LOGO_FILE_SIZE_BYTES / 1024 / 1024} MB
+          Maximum {TOURNAMENT_LOGO_FILE_SIZE_LIMIT_MB} MB
         </p>
         {errors.organizerLogo ? (
           <p className="field-error">{errors.organizerLogo}</p>

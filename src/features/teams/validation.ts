@@ -4,12 +4,16 @@ import {
   type TeamValidationIssueCode as DomainTeamValidationIssueCode,
 } from "@/domain/teams/validation";
 import {
+  MAX_LOGO_FILE_SIZE_BYTES,
   validatePersistedImage,
   type PersistedImage,
   type PersistedImageValidationIssueCode,
 } from "@/infrastructure/browser/persistedImage";
 
 import type { CreateTeamInput } from "./types";
+
+export const TEAM_LOGO_FILE_SIZE_LIMIT_MB =
+  MAX_LOGO_FILE_SIZE_BYTES / 1024 / 1024;
 
 export type TeamValidationField =
   | DomainTeamValidationIssue["field"]

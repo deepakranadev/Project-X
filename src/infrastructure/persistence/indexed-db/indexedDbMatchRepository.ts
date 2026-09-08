@@ -1,8 +1,4 @@
-import {
-  MATCH_STATUSES,
-  type MatchDetailsUpdate,
-  type TournamentMatch,
-} from "@/domain/matches/types";
+import type { MatchDetailsUpdate, TournamentMatch } from "@/domain/matches/types";
 
 import {
   GuestDatabase,
@@ -19,6 +15,8 @@ import {
   observeTransaction,
   requestToPromise,
 } from "./indexedDbUtils";
+import { assertValidStoredMatch, normalizeStoredMatch } from "./indexedDbMatchRules";
+import { MatchRepositoryError } from "./matchRepositoryErrors";
 import {
   parseMatchRecord,
   parseTournamentRecord,
@@ -26,20 +24,7 @@ import {
 } from "./parseStoredRecords";
 import type { MatchRepository } from "@/features/matches/matchRepository";
 
-export type MatchRepositoryErrorCode =
-  | "TOURNAMENT_NOT_FOUND"
-  | "DUPLICATE_MATCH_NUMBER"
-  | "INVALID_MATCH";
-
-export class MatchRepositoryError extends Error {
-  readonly code: MatchRepositoryErrorCode;
-
-  constructor(code: MatchRepositoryErrorCode, message: string) {
-    super(message);
-    this.name = "MatchRepositoryError";
-    this.code = code;
-  }
-}
+export { MatchRepositoryError, type MatchRepositoryErrorCode } from "./matchRepositoryErrors";
 
 export interface IndexedDbMatchRepositoryOptions extends GuestDatabaseOptions {
   readonly database?: GuestDatabase;
@@ -48,36 +33,6 @@ export interface IndexedDbMatchRepositoryOptions extends GuestDatabaseOptions {
 
 function defaultNow(): string {
   return new Date().toISOString();
-}
-
-function normalizeMatch(match: TournamentMatch): TournamentMatch {
-  const name = match.name?.trim();
-  return {
-    id: match.id.trim(),
-    tournamentId: match.tournamentId.trim(),
-    matchNumber: match.matchNumber,
-    ...(name ? { name } : {}),
-    status: match.status,
-    createdAt: match.createdAt,
-    updatedAt: match.updatedAt,
-  };
-}
-
-function assertValidMatch(match: TournamentMatch): void {
-  if (
-    !match.id.trim() ||
-    !match.tournamentId.trim() ||
-    !Number.isInteger(match.matchNumber) ||
-    match.matchNumber < 1 ||
-    !MATCH_STATUSES.includes(match.status) ||
-    !match.createdAt ||
-    !match.updatedAt
-  ) {
-    throw new MatchRepositoryError(
-      "INVALID_MATCH",
-      "Match data is incomplete or malformed.",
-    );
-  }
 }
 
 export class IndexedDbMatchRepository implements MatchRepository {
@@ -95,8 +50,8 @@ export class IndexedDbMatchRepository implements MatchRepository {
   }
 
   async createMatch(match: TournamentMatch): Promise<TournamentMatch> {
-    const normalized = normalizeMatch(match);
-    assertValidMatch(normalized);
+    const normalized = normalizeStoredMatch(match);
+    assertValidStoredMatch(normalized);
     if (normalized.status !== "DRAFT") {
       throw new MatchRepositoryError(
         "INVALID_MATCH",
@@ -195,7 +150,7 @@ export class IndexedDbMatchRepository implements MatchRepository {
       return null;
     }
 
-    const updated = normalizeMatch({
+    const updated = normalizeStoredMatch({
       id: existing.id,
       tournamentId: existing.tournamentId,
       matchNumber: updates.matchNumber ?? existing.matchNumber,
@@ -204,7 +159,7 @@ export class IndexedDbMatchRepository implements MatchRepository {
       createdAt: existing.createdAt,
       updatedAt: this.now(),
     });
-    assertValidMatch(updated);
+    assertValidStoredMatch(updated);
 
     if (updated.matchNumber !== existing.matchNumber) {
       const duplicate = await requestToPromise<IDBValidKey | undefined>(

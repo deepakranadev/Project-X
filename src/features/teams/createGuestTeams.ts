@@ -3,9 +3,8 @@ import {
   type BulkTeamParseIssue,
 } from "./parseBulkTeamNames";
 
-import type { TeamRepository } from "./teamRepository";
+import type { GuestTeamRepository } from "./teamRepository";
 import type { GuestTeam } from "./types";
-import type { PersistedImage } from "@/infrastructure/browser/persistedImage";
 
 export interface GuestTeamCreationDependencies {
   readonly createId?: () => string;
@@ -33,7 +32,7 @@ function defaultNow(): string {
 export async function createGuestTeamsFromText(
   tournamentId: string,
   pastedNames: string,
-  repository: TeamRepository<PersistedImage>,
+  repository: GuestTeamRepository,
   dependencies: GuestTeamCreationDependencies = {},
 ): Promise<readonly GuestTeam[]> {
   const existingTeams = await repository.listTeamsByTournament(tournamentId);

@@ -8,7 +8,6 @@ import type { Tournament } from "@/domain/tournaments/types";
 
 import type { MatchRepository } from "@/features/matches/matchRepository";
 import type { MatchResultRepository } from "@/features/matches/matchResultRepository";
-import type { TeamRepository } from "@/features/teams/teamRepository";
 
 export interface GuestOverallStandingsSnapshot {
   readonly teams: readonly Team[];
@@ -20,21 +19,18 @@ export interface GuestOverallStandingsSnapshot {
 
 export interface LoadGuestOverallStandingsOptions {
   readonly tournament: Tournament;
+  readonly teams: readonly Team[];
   readonly matchRepository: MatchRepository;
   readonly matchResultRepository: MatchResultRepository;
-  readonly teamRepository: Pick<TeamRepository, "listTeamsByTournament">;
 }
 
 export async function loadGuestOverallStandings({
   tournament,
+  teams,
   matchRepository,
   matchResultRepository,
-  teamRepository,
 }: LoadGuestOverallStandingsOptions): Promise<GuestOverallStandingsSnapshot> {
-  const [teams, matches] = await Promise.all([
-    teamRepository.listTeamsByTournament(tournament.id),
-    matchRepository.listMatchesByTournament(tournament.id),
-  ]);
+  const matches = await matchRepository.listMatchesByTournament(tournament.id);
   const finalizedMatches = matches.filter(
     (match) => match.status === "FINALIZED",
   );

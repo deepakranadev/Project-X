@@ -1,5 +1,7 @@
 import type { Team } from "@/domain/teams/types";
 
+import type { GuestTeam } from "./types";
+
 export type TeamUpdate<Image = unknown> = Partial<
   Pick<Team<Image>, "name" | "shortName" | "slotNumber" | "logo">
 >;
@@ -43,3 +45,7 @@ export interface TeamRepository<Image = unknown> {
     orderedTeamIds: readonly string[],
   ): Promise<readonly Team<Image>[]>;
 }
+
+export type GuestTeamRepository = TeamRepository<
+  NonNullable<GuestTeam["logo"]>
+>;

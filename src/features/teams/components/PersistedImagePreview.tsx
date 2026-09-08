@@ -5,10 +5,10 @@
 
 import { useEffect, useState } from "react";
 
-import type { PersistedImage } from "@/infrastructure/browser/persistedImage";
+import type { GuestTeam } from "@/features/teams/types";
 
 interface PersistedImagePreviewProps {
-  readonly image: PersistedImage;
+  readonly image: NonNullable<GuestTeam["logo"]>;
   readonly alt: string;
   readonly className: string;
 }

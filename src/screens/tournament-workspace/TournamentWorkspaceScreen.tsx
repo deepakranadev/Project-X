@@ -4,31 +4,17 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
-import { InvalidScoringConfigError } from "@/domain/scoring/validateScoringConfig";
 import { MatchManagement } from "@/features/matches/components/MatchManagement";
 import { ScoringConfiguration } from "@/features/scoring/components/ScoringConfiguration";
 import { OverallStandings } from "@/features/standings/components/OverallStandings";
 import { TeamManagement } from "@/features/teams/components/TeamManagement";
-import type { GuestTournament } from "@/features/tournaments/types";
-import { getClientTournamentRepository } from "@/infrastructure/persistence/indexed-db/clientTournamentRepository";
+import { useClientWorkspaceRepositories } from "../clientRepositoryComposition";
+import { useTournamentWorkspace } from "./useTournamentWorkspace";
 
 interface TournamentWorkspaceScreenProps {
   readonly tournamentId: string;
 }
-
-type WorkspaceState =
-  | { readonly status: "loading" }
-  | {
-      readonly status: "ready";
-      readonly tournament: GuestTournament;
-      readonly tournamentLogoUrl: string | null;
-      readonly organizerLogoUrl: string | null;
-    }
-  | { readonly status: "missing" }
-  | { readonly status: "invalid-scoring"; readonly message: string }
-  | { readonly status: "error" };
 
 function StoredLogo({
   src,
@@ -45,70 +31,15 @@ function StoredLogo({
 export function TournamentWorkspaceScreen({
   tournamentId,
 }: TournamentWorkspaceScreenProps) {
-  const [state, setState] = useState<WorkspaceState>({ status: "loading" });
-  const [standingsRefreshVersion, setStandingsRefreshVersion] = useState(0);
+  const repositories = useClientWorkspaceRepositories();
+  const workspace = useTournamentWorkspace(
+    tournamentId,
+    repositories?.tournament ?? null,
+    repositories?.teams ?? null,
+  );
+  const { state } = workspace;
 
-  function handleTournamentSaved(tournament: GuestTournament) {
-    setState((current) =>
-      current.status === "ready" ? { ...current, tournament } : current,
-    );
-  }
-
-  useEffect(() => {
-    let active = true;
-    let tournamentLogoUrl: string | null = null;
-    let organizerLogoUrl: string | null = null;
-
-    async function loadTournament() {
-      try {
-        const tournament = await getClientTournamentRepository().getTournament(
-          tournamentId,
-        );
-        if (!active) return;
-        if (!tournament) {
-          setState({ status: "missing" });
-          return;
-        }
-
-        tournamentLogoUrl = tournament.tournamentLogo
-          ? URL.createObjectURL(tournament.tournamentLogo.blob)
-          : null;
-        organizerLogoUrl = tournament.organizerLogo
-          ? URL.createObjectURL(tournament.organizerLogo.blob)
-          : null;
-        setState({
-          status: "ready",
-          tournament,
-          tournamentLogoUrl,
-          organizerLogoUrl,
-        });
-      } catch (error) {
-        if (!active) return;
-        if (error instanceof InvalidScoringConfigError) {
-          const precisionIsInvalid = error.issues.some(
-            (issue) => issue.code === "UNSUPPORTED_SCORE_PRECISION",
-          );
-          setState({
-            status: "invalid-scoring",
-            message: precisionIsInvalid
-              ? "This tournament has a legacy scoring value with more than 2 decimal places. Its saved data was not changed."
-              : "This tournament has a legacy scoring configuration that is no longer valid. Its saved data was not changed.",
-          });
-          return;
-        }
-        setState({ status: "error" });
-      }
-    }
-
-    void loadTournament();
-    return () => {
-      active = false;
-      if (tournamentLogoUrl) URL.revokeObjectURL(tournamentLogoUrl);
-      if (organizerLogoUrl) URL.revokeObjectURL(organizerLogoUrl);
-    };
-  }, [tournamentId]);
-
-  if (state.status === "loading") {
+  if (!repositories || state.status === "loading") {
     return (
       <div className="site-shell grid place-items-center px-5">
         <p className="text-sm text-slate-400" role="status">
@@ -264,27 +195,30 @@ export function TournamentWorkspaceScreen({
 
         <TeamManagement
           tournamentId={tournamentId}
-          onTeamsChanged={() =>
-            setStandingsRefreshVersion((version) => version + 1)
-          }
+          teams={state.teams}
+          repository={repositories.teams}
+          onTeamsChanged={workspace.publishTeams}
         />
 
         <ScoringConfiguration
           initialConfig={tournament.scoringConfig}
           tournamentId={tournamentId}
-          onSaved={handleTournamentSaved}
+          repository={repositories.tournament}
+          onSaved={workspace.publishTournament}
         />
 
         <MatchManagement
           tournamentId={tournamentId}
-          onMatchesChanged={() =>
-            setStandingsRefreshVersion((version) => version + 1)
-          }
+          teams={state.teams}
+          repositories={repositories.matchFeature}
+          onMatchesChanged={workspace.publishMatchesChanged}
         />
 
         <OverallStandings
           tournament={tournament}
-          refreshVersion={standingsRefreshVersion}
+          teams={state.teams}
+          repositories={repositories.standings}
+          refreshVersion={workspace.standingsRefreshVersion}
         />
       </main>
     </div>

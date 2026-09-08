@@ -1,17 +1,11 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent } from "react";
 
 import type { ScoringConfig } from "@/domain/scoring/types";
-import {
-  scoringConfigToDraft,
-  scoringDraftToConfig,
-  type ScoringConfigDraft,
-  type ScoringDraftIssue,
-} from "@/features/scoring/scoringConfigDraft";
-import { createBgmiStandardScoringConfig } from "@/domain/tournaments/scoringPresets";
+import { useScoringConfiguration } from "@/features/scoring/useScoringConfiguration";
+import type { GuestTournamentRepository } from "@/features/tournaments/tournamentRepository";
 import type { GuestTournament } from "@/features/tournaments/types";
-import { getClientTournamentRepository } from "@/infrastructure/persistence/indexed-db/clientTournamentRepository";
 
 import { PlacementPointsEditor } from "./PlacementPointsEditor";
 import { TiebreakerEditor } from "./TiebreakerEditor";
@@ -19,114 +13,30 @@ import { TiebreakerEditor } from "./TiebreakerEditor";
 interface ScoringConfigurationProps {
   readonly initialConfig: ScoringConfig;
   readonly tournamentId: string;
+  readonly repository: GuestTournamentRepository;
   readonly onSaved: (tournament: GuestTournament) => void;
-}
-
-function updateDraft(
-  current: ScoringConfigDraft,
-  changes: Partial<ScoringConfigDraft>,
-): ScoringConfigDraft {
-  return { ...current, ...changes, preset: "CUSTOM" };
 }
 
 export function ScoringConfiguration({
   initialConfig,
   tournamentId,
+  repository,
   onSaved,
 }: ScoringConfigurationProps) {
-  const [draft, setDraft] = useState(() => scoringConfigToDraft(initialConfig));
-  const [issues, setIssues] = useState<readonly ScoringDraftIssue[]>([]);
-  const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    if (!isDirty) return;
-
-    function warnBeforeLeaving(event: BeforeUnloadEvent) {
-      event.preventDefault();
-    }
-
-    window.addEventListener("beforeunload", warnBeforeLeaving);
-    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
-  }, [isDirty]);
-
-  function applyChange(changes: Partial<ScoringConfigDraft>) {
-    setDraft((current) => updateDraft(current, changes));
-    setIssues([]);
-    setSaveError(null);
-    setSaved(false);
-    setIsDirty(true);
-  }
-
-  function selectStandardPreset() {
-    setDraft(scoringConfigToDraft(createBgmiStandardScoringConfig()));
-    setIssues([]);
-    setSaveError(null);
-    setSaved(false);
-    setIsDirty(true);
-  }
-
-  function selectCustom() {
-    setDraft((current) => ({ ...current, preset: "CUSTOM" }));
-    setSaved(false);
-  }
+  const controller = useScoringConfiguration(
+    initialConfig,
+    tournamentId,
+    repository,
+    onSaved,
+  );
+  const { applyChange, draft, finishError, generalIssues, isDirty, isSaving,
+    placementErrors, saveError, saved, selectCustom, selectStandardPreset,
+    tiebreakError } = controller;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSaving) return;
-
-    const mapping = scoringDraftToConfig(draft);
-    if (!mapping.valid) {
-      setIssues(mapping.issues);
-      setSaved(false);
-      return;
-    }
-
-    setIsSaving(true);
-    setIssues([]);
-    setSaveError(null);
-    try {
-      const tournament = await getClientTournamentRepository().updateTournament(
-        tournamentId,
-        { scoringConfig: mapping.config },
-      );
-      if (!tournament) {
-        throw new Error("This tournament is no longer saved on this device.");
-      }
-
-      setDraft(scoringConfigToDraft(tournament.scoringConfig));
-      setIsDirty(false);
-      setSaved(true);
-      onSaved(tournament);
-    } catch {
-      setSaveError(
-        "Scoring could not be saved. Check browser storage permissions and try again.",
-      );
-    } finally {
-      setIsSaving(false);
-    }
+    void controller.save();
   }
-
-  const placementErrors: Record<number, string | undefined> = {};
-  for (const issue of issues) {
-    if (!issue.field.startsWith("placementPoints.")) continue;
-    const placement = Number(issue.field.split(".").at(-1));
-    if (Number.isInteger(placement)) placementErrors[placement] = issue.message;
-  }
-  const finishError = issues.find(
-    (issue) => issue.field === "pointsPerFinish",
-  )?.message;
-  const tiebreakError = issues.find(
-    (issue) => issue.field === "tiebreakers",
-  )?.message;
-  const generalIssues = issues.filter(
-    (issue) =>
-      !issue.field.startsWith("placementPoints.") &&
-      issue.field !== "pointsPerFinish" &&
-      issue.field !== "tiebreakers",
-  );
 
   return (
     <section className="mt-10 scroll-mt-4 sm:mt-14" id="scoring">

@@ -4,12 +4,16 @@ import {
   type TournamentValidationIssueCode as DomainTournamentValidationIssueCode,
 } from "@/domain/tournaments/validation";
 import {
+  MAX_LOGO_FILE_SIZE_BYTES,
   validatePersistedImage,
   type PersistedImage,
   type PersistedImageValidationIssueCode,
 } from "@/infrastructure/browser/persistedImage";
 
 import type { CreateTournamentInput } from "./types";
+
+export const TOURNAMENT_LOGO_FILE_SIZE_LIMIT_MB =
+  MAX_LOGO_FILE_SIZE_BYTES / 1024 / 1024;
 
 export type TournamentValidationField =
   | DomainTournamentValidationIssue["field"]

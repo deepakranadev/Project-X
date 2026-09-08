@@ -4,49 +4,44 @@ import {
   type ChangeEvent,
   type FormEvent,
   useEffect,
-  useState,
 } from "react";
 
-import { TeamDeletionError } from "@/domain/teams/errors";
 import {
   MAX_TEAM_NAME_LENGTH,
   MAX_TEAM_SHORT_NAME_LENGTH,
   MAX_TEAM_SLOT_NUMBER,
 } from "@/domain/teams/validation";
-import {
-  TeamValidationError,
-  type TeamValidationField,
-  validateTeamLogo,
-} from "@/features/teams/validation";
-import { TeamRepositoryError } from "@/features/teams/teamRepository";
+import type { GuestTeamRepository } from "@/features/teams/teamRepository";
 import type { GuestTeam } from "@/features/teams/types";
-import {
-  MAX_LOGO_FILE_SIZE_BYTES,
-  type PersistedImage,
-} from "@/infrastructure/browser/persistedImage";
-import { getClientTeamRepository } from "@/infrastructure/persistence/indexed-db/clientTeamRepository";
+import { useTeamEditor } from "@/features/teams/useTeamEditor";
+import { TEAM_LOGO_FILE_SIZE_LIMIT_MB } from "@/features/teams/validation";
 
 import { PersistedImagePreview } from "./PersistedImagePreview";
+import { TeamDeletionControls } from "./TeamDeletionControls";
 
 interface TeamEditSheetProps {
   readonly team: GuestTeam;
+  readonly repository: GuestTeamRepository;
   readonly onClose: () => void;
-  readonly onDeleted: () => Promise<void>;
-  readonly onSaved: () => Promise<void>;
+  readonly onDeleted: (teamId: string) => void;
+  readonly onSaved: (team: GuestTeam) => void;
 }
-
-type EditErrors = Partial<Record<TeamValidationField | "form", string>>;
 
 export function TeamEditSheet({
   team,
+  repository,
   onClose,
   onDeleted,
   onSaved,
 }: TeamEditSheetProps) {
-  const [logo, setLogo] = useState<PersistedImage | null>(team.logo);
-  const [errors, setErrors] = useState<EditErrors>({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const controller = useTeamEditor(
+    team,
+    repository,
+    onSaved,
+    onDeleted,
+    onClose,
+  );
+  const { errors, isDeleting, isSaving, logo } = controller;
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
@@ -59,88 +54,12 @@ export function TeamEditSheet({
 
   function handleLogoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0] ?? null;
-    if (!file) return;
-
-    const nextLogo: PersistedImage = { blob: file, fileName: file.name };
-    const issues = validateTeamLogo(nextLogo);
-    if (issues.length > 0) {
-      setErrors((current) => ({ ...current, logo: issues[0]?.message }));
-      event.currentTarget.value = "";
-      return;
-    }
-
-    setLogo(nextLogo);
-    setErrors((current) => ({ ...current, logo: undefined, form: undefined }));
+    if (!controller.selectLogo(file)) event.currentTarget.value = "";
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSaving) return;
-
-    const formData = new FormData(event.currentTarget);
-    const rawSlot = String(formData.get("slotNumber") ?? "").trim();
-    setIsSaving(true);
-    setErrors({});
-
-    try {
-      const updated = await getClientTeamRepository().updateTeam(
-        team.tournamentId,
-        team.id,
-        {
-          name: String(formData.get("name") ?? ""),
-          shortName: String(formData.get("shortName") ?? "") || null,
-          slotNumber: rawSlot.length === 0 ? null : Number(rawSlot),
-          logo,
-        },
-      );
-      if (!updated) {
-        throw new Error("This team is no longer in the tournament roster.");
-      }
-      await onSaved();
-      onClose();
-    } catch (error) {
-      if (error instanceof TeamValidationError) {
-        const nextErrors: EditErrors = {};
-        for (const issue of error.issues) {
-          nextErrors[issue.field] ??= issue.message;
-        }
-        setErrors(nextErrors);
-      } else if (error instanceof TeamRepositoryError) {
-        setErrors({
-          [error.code === "SLOT_CONFLICT" ? "slotNumber" : "name"]:
-            error.message,
-        });
-      } else {
-        setErrors({
-          form:
-            error instanceof Error
-              ? error.message
-              : "This team could not be saved. Try again.",
-        });
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function handleDelete() {
-    if (isSaving) return;
-    setIsSaving(true);
-    setErrors({});
-    try {
-      await getClientTeamRepository().deleteTeam(team.tournamentId, team.id);
-      await onDeleted();
-      onClose();
-    } catch (error) {
-      setErrors({
-        form:
-          error instanceof TeamDeletionError &&
-          error.code === "TEAM_HAS_MATCH_HISTORY"
-            ? "This team can't be deleted because it already has match history."
-            : "This team could not be removed. Try again.",
-      });
-      setIsSaving(false);
-    }
+    void controller.save(new FormData(event.currentTarget));
   }
 
   return (
@@ -247,7 +166,7 @@ export function TeamEditSheet({
                 <button
                   className="text-xs font-bold text-slate-500 hover:text-red-300"
                   type="button"
-                  onClick={() => setLogo(null)}
+                  onClick={controller.removeLogo}
                 >
                   Remove
                 </button>
@@ -267,7 +186,7 @@ export function TeamEditSheet({
               />
             </label>
             <p className="mt-2 text-xs text-slate-500">
-              Maximum {MAX_LOGO_FILE_SIZE_BYTES / 1024 / 1024} MB
+              Maximum {TEAM_LOGO_FILE_SIZE_LIMIT_MB} MB
             </p>
             {errors.logo ? <p className="field-error">{errors.logo}</p> : null}
           </div>
@@ -286,48 +205,15 @@ export function TeamEditSheet({
             type="submit"
             disabled={isSaving}
           >
-            {isSaving && !confirmingDelete ? "Saving…" : "Save team"}
+            {isSaving && !isDeleting ? "Saving…" : "Save team"}
           </button>
         </form>
 
-        <div className="mt-5 border-t border-white/8 pt-5">
-          {confirmingDelete ? (
-            <div className="rounded-lg border border-red-400/20 bg-red-400/5 p-3">
-              <p className="text-sm font-bold text-white">
-                Remove {team.name} from this tournament?
-              </p>
-              <p className="mt-1 text-xs leading-5 text-slate-400">
-                This removes the locally saved team record.
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <button
-                  className="min-h-11 rounded-lg border border-white/10 text-sm font-bold text-slate-300"
-                  type="button"
-                  onClick={() => setConfirmingDelete(false)}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="min-h-11 rounded-lg bg-red-400 px-3 text-sm font-black text-slate-950 disabled:opacity-60"
-                  type="button"
-                  onClick={() => void handleDelete()}
-                  disabled={isSaving}
-                >
-                  {isSaving ? "Removing…" : "Yes, remove"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              className="min-h-11 text-sm font-bold text-red-300 hover:text-red-200"
-              type="button"
-              onClick={() => setConfirmingDelete(true)}
-            >
-              Remove team
-            </button>
-          )}
-        </div>
+        <TeamDeletionControls
+          isDeleting={isDeleting}
+          teamName={team.name}
+          onDelete={() => void controller.deleteTeam()}
+        />
       </div>
     </div>
   );

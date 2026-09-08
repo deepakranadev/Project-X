@@ -87,7 +87,7 @@ function sourceCycles(files: readonly string[]): readonly string[] {
   return [...cycles];
 }
 
-describe("R2F architecture ownership", () => {
+describe("R2G architecture ownership", () => {
   const sourceFiles = filesBelow(sourceRoot);
 
   it("keeps domain free of browser, UI, and infrastructure dependencies", () => {
@@ -123,6 +123,38 @@ describe("R2F architecture ownership", () => {
       }
       return [];
     });
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps concrete infrastructure imports out of feature React components", () => {
+    const violations = sourceFiles
+      .filter((file) => {
+        const filePath = relative(file);
+        return (
+          filePath.startsWith("src/features/") &&
+          filePath.endsWith(".tsx") &&
+          /from\s+["']@\/infrastructure\//.test(readFileSync(file, "utf8"))
+        );
+      })
+      .map(relative);
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps feature hooks on contracts rather than concrete IndexedDB adapters", () => {
+    const violations = sourceFiles
+      .filter((file) => {
+        const filePath = relative(file);
+        return (
+          filePath.startsWith("src/features/") &&
+          /\/use[A-Z][^/]*\.ts$/.test(filePath) &&
+          /@\/infrastructure\/persistence\/indexed-db\/|\bIndexedDb\w+Repository\b|\bgetClient\w+Repository\b/.test(
+            readFileSync(file, "utf8"),
+          )
+        );
+      })
+      .map(relative);
 
     expect(violations).toEqual([]);
   });
@@ -170,5 +202,13 @@ describe("R2F architecture ownership", () => {
 
   it("has no circular source-module dependency", () => {
     expect(sourceCycles(sourceFiles)).toEqual([]);
+  });
+
+  it("keeps production TypeScript files at or below the R2G responsibility target", () => {
+    const oversized = sourceFiles
+      .filter((file) => readFileSync(file, "utf8").split(/\r?\n/).length > 251)
+      .map(relative);
+
+    expect(oversized).toEqual([]);
   });
 });
