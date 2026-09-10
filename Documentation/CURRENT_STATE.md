@@ -47,6 +47,10 @@ R2I ✅ shadcn Foundation + Shared UI Primitive Layer
 
 R2J = NEXT, NOT STARTED
 
+## Product Expansion Principle
+**BUILD NARROW. ARCHITECT BROAD. EXPAND ONE FEATURE AT A TIME.**
+*See `PROJECT_CONTEXT.md` for durable architectural rules regarding future multi-persona capabilities, domain isolation, and modular dashboards. Current product focus strictly remains ESPORTS POINTS TABLES.*
+
 ## Current Important Implementation Facts
 - IndexedDB schema version 4
 - Feature React components have no concrete infrastructure imports
