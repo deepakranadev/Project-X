@@ -20,7 +20,7 @@ describe("Scoring Configuration Formik Migration", () => {
       } as unknown as GuestTournament),
     } as unknown as GuestTournamentRepository;
 
-    let onSavedWrapper = (t: GuestTournament) => {};
+    let onSavedWrapper = (_t: GuestTournament) => {};
     const { result, rerender } = renderHook(
       (props) => useScoringConfiguration(props.config, "t1", mockRepo, props.onSaved),
       {
@@ -45,6 +45,7 @@ describe("Scoring Configuration Formik Migration", () => {
     });
 
     if (result.current.saveError) console.error("Save error:", result.current.saveError);
+    // @ts-expect-error Mock calls type mismatch in vitest
     console.log("Mock calls:", mockRepo.updateTournament.mock.calls);
     console.log("Values:", result.current.draft);
 

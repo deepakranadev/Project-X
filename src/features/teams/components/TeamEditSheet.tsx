@@ -14,6 +14,9 @@ import type { GuestTeamRepository } from "@/features/teams/teamRepository";
 import type { GuestTeam } from "@/features/teams/types";
 import { useTeamEditor } from "@/features/teams/useTeamEditor";
 import { TEAM_LOGO_FILE_SIZE_LIMIT_MB } from "@/features/teams/validation";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 
 import { PersistedImagePreview } from "./PersistedImagePreview";
 import { TeamDeletionControls } from "./TeamDeletionControls";
@@ -87,10 +90,10 @@ export function TeamEditSheet({
 
         <form className="mt-6 space-y-5" onSubmit={formik.handleSubmit} noValidate>
           <div>
-            <label className="field-label" htmlFor="editTeamName">
+            <Label className="field-label" htmlFor="editTeamName">
               Team name
-            </label>
-            <input
+            </Label>
+            <Input
               className="field-control"
               id="editTeamName"
               maxLength={MAX_TEAM_NAME_LENGTH}
@@ -104,10 +107,10 @@ export function TeamEditSheet({
 
           <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
             <div>
-              <label className="field-label" htmlFor="editTeamShortName">
+              <Label className="field-label" htmlFor="editTeamShortName">
                 Short name <span className="field-optional">Optional</span>
-              </label>
-              <input
+              </Label>
+              <Input
                 className="field-control"
                 id="editTeamShortName"
                 maxLength={MAX_TEAM_SHORT_NAME_LENGTH}
@@ -120,10 +123,10 @@ export function TeamEditSheet({
               ) : null}
             </div>
             <div>
-              <label className="field-label" htmlFor="editTeamSlot">
+              <Label className="field-label" htmlFor="editTeamSlot">
                 Slot number
-              </label>
-              <input
+              </Label>
+              <Input
                 className="field-control tabular-nums"
                 id="editTeamSlot"
                 type="number"
@@ -191,13 +194,13 @@ export function TeamEditSheet({
             </p>
           ) : null}
 
-          <button
-            className="primary-action w-full disabled:cursor-wait disabled:opacity-60"
+          <Button
+            className="primary-action w-full disabled:cursor-wait"
             type="submit"
             disabled={isSaving}
           >
             {isSaving && !isDeleting ? "Saving…" : "Save team"}
-          </button>
+          </Button>
         </form>
 
         <TeamDeletionControls

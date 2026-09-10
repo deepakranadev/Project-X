@@ -9,8 +9,8 @@ import type { GuestTeamRepository } from "@/features/teams/teamRepository";
 import type { GuestTeam } from "@/features/teams/types";
 import { TeamDeletionError } from "@/domain/teams/errors";
 
-const mockTeamA: GuestTeam = { id: "a", tournamentId: "t1", name: "Team A", shortName: null, slotNumber: null, logo: null, createdAt: new Date(), updatedAt: new Date() };
-const mockTeamB: GuestTeam = { id: "b", tournamentId: "t1", name: "Team B", shortName: "TB", slotNumber: 2, logo: null, createdAt: new Date(), updatedAt: new Date() };
+const mockTeamA: GuestTeam = { id: "a", tournamentId: "t1", name: "Team A", shortName: null, slotNumber: null, logo: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+const mockTeamB: GuestTeam = { id: "b", tournamentId: "t1", name: "Team B", shortName: "TB", slotNumber: 2, logo: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
 
 describe("Team Editor Formik Migration", () => {
   it("reinitializes values when the incoming team prop changes", () => {
@@ -40,7 +40,7 @@ describe("Team Editor Formik Migration", () => {
       } as GuestTeam),
     } as unknown as GuestTeamRepository;
 
-    let onSavedWrapper = (t: GuestTeam) => {};
+    let onSavedWrapper = (_t: GuestTeam) => {};
     const { result, rerender } = renderHook(
       (props) => useTeamEditor(props.team, mockRepo, props.onSaved, vi.fn(), vi.fn()),
       { initialProps: { team: mockTeamA, onSaved: (t: GuestTeam) => onSavedWrapper(t) } }

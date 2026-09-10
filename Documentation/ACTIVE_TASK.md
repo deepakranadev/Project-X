@@ -1,8 +1,18 @@
 # Active Task
 
-## ACTIVE IMPLEMENTATION TASK: NONE
-**NEXT APPROVED STAGE: R2I**
+ACTIVE IMPLEMENTATION TASK: NONE
+STATUS: R2I complete and approved.
 
-**R2I HAS NOT STARTED.**
+NEXT APPROVED STAGE: R2J
+R2J HAS NOT STARTED.
 
-Do not invent the R2I specification. Wait for authorization.
+## Approved Scope
+Introduce a clean, production-ready shared UI primitive foundation using shadcn conventions.
+
+- Establish `src/shared/ui` foundation
+- Install basic low-level UI elements (Button, Input, Textarea, Label, Badge, Card, Separator, Skeleton)
+- Migrate simple fields selectively
+- Do not use `--force` for shadcn installation
+- Use `new-york` style
+- Retain existing globals.css setup for Tailwind v4
+- Preserve specific match/overlay markup completely intact

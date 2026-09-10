@@ -5,6 +5,10 @@ import { useScoringConfiguration } from "@/features/scoring/useScoringConfigurat
 import type { GuestTournamentRepository } from "@/features/tournaments/tournamentRepository";
 import type { GuestTournament } from "@/features/tournaments/types";
 
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+
 import { PlacementPointsEditor } from "./PlacementPointsEditor";
 import { TiebreakerEditor } from "./TiebreakerEditor";
 
@@ -101,10 +105,10 @@ export function ScoringConfiguration({
           />
 
           <div className="max-w-sm">
-            <label className="field-label" htmlFor="pointsPerFinish">
+            <Label className="field-label" htmlFor="pointsPerFinish">
               Points per finish
-            </label>
-            <input
+            </Label>
+            <Input
               className="field-control font-black tabular-nums"
               id="pointsPerFinish"
               type="number"
@@ -144,13 +148,13 @@ export function ScoringConfiguration({
             </p>
           ) : null}
 
-          <button
-            className="primary-action w-full disabled:cursor-not-allowed disabled:opacity-50"
+          <Button
+            className="primary-action w-full disabled:cursor-not-allowed"
             type="submit"
             disabled={isSaving || !isDirty}
           >
             {isSaving ? "Saving scoring…" : "Save Scoring"}
-          </button>
+          </Button>
         </div>
       </form>
     </section>

@@ -1,6 +1,7 @@
 "use client";
 
 import type { GuestTeam } from "@/features/teams/types";
+import { Button } from "@/shared/ui/button";
 
 import { PersistedImagePreview } from "./PersistedImagePreview";
 
@@ -71,8 +72,10 @@ export function TeamRoster({
               ) : null}
             </span>
             <span className="flex items-center gap-1">
-              <button
-                className="grid h-9 w-8 place-items-center rounded-md text-slate-500 hover:bg-white/5 hover:text-white disabled:opacity-25"
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-8 text-slate-500 hover:bg-white/5 hover:text-white disabled:opacity-25"
                 type="button"
                 aria-label={`Move ${team.name} up`}
                 title="Move up"
@@ -80,9 +83,11 @@ export function TeamRoster({
                 onClick={() => onMove(index, -1)}
               >
                 ↑
-              </button>
-              <button
-                className="grid h-9 w-8 place-items-center rounded-md text-slate-500 hover:bg-white/5 hover:text-white disabled:opacity-25"
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-8 text-slate-500 hover:bg-white/5 hover:text-white disabled:opacity-25"
                 type="button"
                 aria-label={`Move ${team.name} down`}
                 title="Move down"
@@ -90,15 +95,17 @@ export function TeamRoster({
                 onClick={() => onMove(index, 1)}
               >
                 ↓
-              </button>
-              <button
-                className="min-h-9 rounded-md border border-white/10 px-2.5 text-xs font-bold text-slate-300 hover:border-lime-300/40 hover:text-lime-300"
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 min-h-9 border-white/10 px-2.5 text-xs font-bold text-slate-300 hover:border-lime-300/40 hover:text-lime-300"
                 type="button"
                 aria-label={`Edit ${team.name}`}
                 onClick={() => onEdit(team)}
               >
                 Edit
-              </button>
+              </Button>
             </span>
           </li>
         ))}

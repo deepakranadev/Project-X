@@ -5,6 +5,8 @@ import { type FormEvent } from "react";
 import type { GuestTeamRepository } from "@/features/teams/teamRepository";
 import type { GuestTeam } from "@/features/teams/types";
 import { useTeamBulkEntry } from "@/features/teams/useTeamBulkEntry";
+import { Button } from "@/shared/ui/button";
+import { Textarea } from "@/shared/ui/textarea";
 
 interface TeamBulkFormProps {
   readonly existingTeams: readonly GuestTeam[];
@@ -54,7 +56,7 @@ export function TeamBulkForm({
       <label className="sr-only" htmlFor="bulkTeamNames">
         Paste one team per line
       </label>
-      <textarea
+      <Textarea
         className="field-control mt-4 min-h-44 resize-y leading-7"
         id="bulkTeamNames"
         name="bulkTeamNames"
@@ -98,8 +100,8 @@ export function TeamBulkForm({
         </ul>
       ) : null}
 
-      <button
-        className="primary-action mt-5 w-full disabled:cursor-not-allowed disabled:opacity-50"
+      <Button
+        className="primary-action mt-5 w-full disabled:cursor-not-allowed"
         type="submit"
         disabled={isSaving || validation.issues.length > 0}
       >
@@ -107,7 +109,7 @@ export function TeamBulkForm({
           ? "Adding teams…"
           : `Add ${validation.detectedCount} ${validation.detectedCount === 1 ? "Team" : "Teams"}`}
         <span aria-hidden="true">{isSaving ? "" : "→"}</span>
-      </button>
+      </Button>
     </form>
   );
 }

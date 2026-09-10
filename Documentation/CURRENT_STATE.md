@@ -31,7 +31,21 @@ Formik adopted only for Tournament Creation, Team Edit, and Scoring Configuratio
 - explicit single-flight guards protect async form mutations
 - R2I is NEXT and NOT STARTED
 
-R2I = NEXT, NOT STARTED
+R2I ✅ shadcn Foundation + Shared UI Primitive Layer
+- shadcn new-york configuration
+- Tailwind v4 compatible
+- src/shared/ui established
+- src/shared/utils/cn.ts established
+- current used primitives: Button, Input, Textarea, Label
+- Migrated standard inputs/buttons in Tournament Creation, Team Editor, Team Bulk Entry, Scoring Configuration, and Team Roster.
+- MatchEntry remains specialized/non-shadcn hot path
+- Formik boundaries from R2H remain intact
+- Did not touch Dialog/Sheet overlays.
+- Kept UI hierarchy shallow and semantic.
+- R2I is COMPLETE AND APPROVED.
+- R2J is NEXT and NOT STARTED.
+
+R2J = NEXT, NOT STARTED
 
 ## Current Important Implementation Facts
 - IndexedDB schema version 4
@@ -46,13 +60,15 @@ R2I = NEXT, NOT STARTED
 - No architecture cycles
 - Domain has no outward/browser dependencies
 - Formik handles standard forms only (no Formik in MatchEntry or TeamBulkForm)
-- No shadcn yet
+- Shadcn UI foundation installed (Button, Input, Textarea, Label in `src/shared/ui`)
+- Overlay layer (Sheet, Dialog) remains unmigrated.
+- MatchEntry untouched by shadcn (specialized hot path).
 - No authentication
 - No cloud persistence
 - No graphics engine
 - No OCR/AI implementation
 
-- **Vitest:** 263 tests pass across 37 test files.
-- **Architecture tests:** 9 tests pass (part of the 263 count above).
+- **Vitest:** 274 tests pass across 39 test files.
+- **Architecture tests:** 13 tests pass (part of the 274 count above).
 - **Playwright E2E:** 7 tests pass.
 - **Production Build:** Successfully completed, generating 4 routes.

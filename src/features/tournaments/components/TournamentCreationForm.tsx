@@ -13,6 +13,9 @@ import {
   useTournamentCreation,
 } from "@/features/tournaments/useTournamentCreation";
 import { TOURNAMENT_LOGO_FILE_SIZE_LIMIT_MB } from "@/features/tournaments/validation";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 
 interface TournamentCreationFormProps {
   readonly repository: GuestTournamentRepository;
@@ -34,10 +37,10 @@ export function TournamentCreationForm({
   return (
     <form className="panel space-y-5 p-5 sm:p-7" onSubmit={formik.handleSubmit} noValidate>
       <div>
-        <label className="field-label" htmlFor="name">
+        <Label className="field-label" htmlFor="name">
           Tournament name
-        </label>
-        <input
+        </Label>
+        <Input
           className="field-control"
           id="name"
           placeholder="e.g. Sunday Showdown"
@@ -57,9 +60,9 @@ export function TournamentCreationForm({
       </div>
 
       <div>
-        <label className="field-label" htmlFor="game">
+        <Label className="field-label" htmlFor="game">
           Game
-        </label>
+        </Label>
         <select className="field-control" id="game" {...formik.getFieldProps("game")}>
           <option value="BGMI">BGMI</option>
         </select>
@@ -94,10 +97,10 @@ export function TournamentCreationForm({
       </div>
 
       <div>
-        <label className="field-label" htmlFor="organizerName">
+        <Label className="field-label" htmlFor="organizerName">
           Organizer name <span className="field-optional">Optional</span>
-        </label>
-        <input
+        </Label>
+        <Input
           className="field-control"
           id="organizerName"
           placeholder="e.g. Nova Esports"
@@ -144,14 +147,14 @@ export function TournamentCreationForm({
         </p>
       ) : null}
 
-      <button
-        className="primary-action mt-2 w-full disabled:cursor-wait disabled:opacity-70"
+      <Button
+        className="primary-action mt-2 w-full disabled:cursor-wait"
         type="submit"
         disabled={formik.isSubmitting}
       >
         {formik.isSubmitting ? "Saving…" : "Create Tournament"}
         <span aria-hidden="true">{formik.isSubmitting ? "" : "→"}</span>
-      </button>
+      </Button>
     </form>
   );
 }
