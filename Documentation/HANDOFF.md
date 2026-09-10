@@ -2,27 +2,32 @@
 
 ## CURRENT STATUS
 
-R2K complete and externally approved.
-no unfinished R2K work.
-R2L not started.
-repository awaiting R2K commit.
+- R2A–R2L complete and externally approved
+- frontend architecture frozen as the current baseline
+- no unfinished R2 implementation work
+- no production changes made by R2L
+- UI/design phase not started
+- frontend/backend restructuring not started
+- backend not started
 
-## FINAL APPROVED VERIFICATION (R2K)
+## IMPORTANT CONSTRAINTS FOR UPCOMING UI PHASE
 
-- Vitest: 293/293
-- Playwright: 7/7
-- typecheck: clean
-- ESLint: 0 errors / 0 warnings
-- build: clean
-- npm audit: 0 vulnerabilities
-- source cycles: 0
-- production >250 lines: 0
-- IndexedDB: v4
+- correctness and data integrity remain non-negotiable
+- TTPT means Time To Points Table
+- MatchEntry hot-path behavior must not be degraded by redesign
+- no Formik in MatchEntry
+- native numeric inputs remain unless a proven equal/better solution exists
+- 500ms autosave/write-coordinator/latest-snapshot semantics remain
+- scoring remains deterministic
+- graphics/visual design must never become authoritative for scoring
+- current architecture boundaries remain frozen unless a concrete UI requirement proves a change necessary
 
-## RECORD R2K CONFIGURATION ADDITIONS
+## FINAL VERIFICATION
 
-- .github/workflows/ci.yml
-- npm run verify
-- lint --max-warnings=0
-- explicit GitHub Actions contents: read permission
-- cn package removal
+- 293 Vitest
+- 7 Playwright
+- typecheck clean
+- lint 0/0
+- build clean
+- verify clean
+- IndexedDB v4
