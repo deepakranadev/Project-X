@@ -42,7 +42,7 @@ R2I ✅ shadcn Foundation + Shared UI Primitive Layer
 - Did not touch Dialog/Sheet overlays.
 - Kept UI hierarchy shallow and semantic.
 
-R2J ✅ Accessible Overlays, Confirmations & Feedback — COMPLETE AND APPROVED
+R2J ✅ Accessible Overlays, Confirmations & Feedback
 - TeamEditSheet migrated to accessible Radix Sheet primitive
 - Team deletion migrated to AlertDialog (replaced window.confirm)
 - Match deletion migrated to AlertDialog (replaced window.confirm)
@@ -55,10 +55,46 @@ R2J ✅ Accessible Overlays, Confirmations & Feedback — COMPLETE AND APPROVED
 - MatchEntry hot path remains completely untouched
 - Formik boundaries from R2H remain intact
 - IndexedDB remains v4 (no schema changes)
-- Final Vitest: 293 passed across 43 files
-- Final Playwright E2E: 7/7 passed
-- ESLint: 0 errors, 0 warnings
-- R2K is NEXT and NOT STARTED
+
+R2K ✅ COMPLETE AND APPROVED
+- GitHub Actions verification CI established
+- push to main and PR-to-main triggers
+- explicit permissions: contents: read
+- deterministic npm ci installs
+- quality gates:
+  - typecheck
+  - ESLint zero-warning policy
+  - Vitest
+  - production build
+- E2E gate:
+  - Playwright Chromium
+- failure-only Playwright artifact upload
+- local npm run verify command added
+- lint command now: eslint . --max-warnings=0
+- accidental cn@0.2.6 dependency removed
+- Sheet and AlertDialog use canonical: @/shared/utils/cn
+- no justified production performance changes were necessary
+- MatchEntry hot path preserved
+- Formik boundaries preserved
+- IndexedDB remains v4
+- source cycles = 0
+- production files >250 lines = 0
+- final Vitest = 293/293 across 43 files
+- final Playwright = 7/7
+- lint = 0 errors / 0 warnings
+- typecheck clean
+- build clean
+- npm audit = 0 vulnerabilities
+
+Production files >= 200 lines:
+- TeamEditSheet.tsx — 201
+- guestDatabase.ts — 207
+- indexedDbTeamRepository.ts — 216
+- indexedDbMatchRepository.ts — 218
+- TournamentWorkspaceScreen.tsx — 227
+
+R2L = NEXT
+R2L = NOT STARTED
 
 ## Product Expansion Principle
 **BUILD NARROW. ARCHITECT BROAD. EXPAND ONE FEATURE AT A TIME.**
