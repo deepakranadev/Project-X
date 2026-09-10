@@ -29,7 +29,6 @@ Formik adopted only for Tournament Creation, Team Edit, and Scoring Configuratio
 - MatchEntry remains non-Formik
 - Team Bulk Entry remains non-Formik
 - explicit single-flight guards protect async form mutations
-- R2I is NEXT and NOT STARTED
 
 R2I ✅ shadcn Foundation + Shared UI Primitive Layer
 - shadcn new-york configuration
@@ -42,10 +41,24 @@ R2I ✅ shadcn Foundation + Shared UI Primitive Layer
 - Formik boundaries from R2H remain intact
 - Did not touch Dialog/Sheet overlays.
 - Kept UI hierarchy shallow and semantic.
-- R2I is COMPLETE AND APPROVED.
-- R2J is NEXT and NOT STARTED.
 
-R2J = NEXT, NOT STARTED
+R2J ✅ Accessible Overlays, Confirmations & Feedback — COMPLETE AND APPROVED
+- TeamEditSheet migrated to accessible Radix Sheet primitive
+- Team deletion migrated to AlertDialog (replaced window.confirm)
+- Match deletion migrated to AlertDialog (replaced window.confirm)
+- window.confirm and window.alert removed from all migrated flows
+- Exactly one application-level Sonner Toaster mounted in layout
+- Transient success feedback uses Sonner toast()
+- Actionable errors remain persistent feature state (not toast-only)
+- Match deletion protected by synchronous useRef single-flight lock (deleteLockRef)
+- Team Sheet dismissal consults authoritative actionLock (isLocked()) — cannot dismiss during save/delete
+- MatchEntry hot path remains completely untouched
+- Formik boundaries from R2H remain intact
+- IndexedDB remains v4 (no schema changes)
+- Final Vitest: 293 passed across 43 files
+- Final Playwright E2E: 7/7 passed
+- ESLint: 0 errors, 0 warnings
+- R2K is NEXT and NOT STARTED
 
 ## Product Expansion Principle
 **BUILD NARROW. ARCHITECT BROAD. EXPAND ONE FEATURE AT A TIME.**
@@ -60,19 +73,18 @@ R2J = NEXT, NOT STARTED
 - MatchEntry decomposed into draft-state/persistence/presentation helpers
 - Existing race-safe write coordinator retained
 - No production `.ts/.tsx` file is currently over 250 lines
-- Current largest production files: `TournamentWorkspaceScreen.tsx` (227 lines), `TeamEditSheet.tsx` (221 lines), `indexedDbMatchRepository.ts` (218 lines), `indexedDbTeamRepository.ts` (216 lines), `guestDatabase.ts` (206 lines)
 - No architecture cycles
 - Domain has no outward/browser dependencies
 - Formik handles standard forms only (no Formik in MatchEntry or TeamBulkForm)
-- Shadcn UI foundation installed (Button, Input, Textarea, Label in `src/shared/ui`)
-- Overlay layer (Sheet, Dialog) remains unmigrated.
-- MatchEntry untouched by shadcn (specialized hot path).
+- Shadcn UI foundation installed: Button, Input, Textarea, Label, Sheet, AlertDialog, Sonner in `src/shared/ui`
+- MatchEntry untouched by shadcn (specialized hot path)
 - No authentication
 - No cloud persistence
 - No graphics engine
 - No OCR/AI implementation
 
-- **Vitest:** 274 tests pass across 39 test files.
-- **Architecture tests:** 13 tests pass (part of the 274 count above).
+- **Vitest:** 293 tests pass across 43 test files.
+- **Architecture tests:** 15 tests pass (part of the 293 count above).
 - **Playwright E2E:** 7 tests pass.
+- **ESLint:** 0 errors, 0 warnings.
 - **Production Build:** Successfully completed, generating 4 routes.

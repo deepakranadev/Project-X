@@ -1,6 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/shared/ui/alert-dialog";
 
 interface TeamDeletionControlsProps {
   readonly isDeleting: boolean;
@@ -13,45 +25,57 @@ export function TeamDeletionControls({
   teamName,
   onDelete,
 }: TeamDeletionControlsProps) {
-  const [confirming, setConfirming] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const prevIsDeleting = useRef(isDeleting);
+  useEffect(() => {
+    if (prevIsDeleting.current && !isDeleting) {
+      setOpen(false);
+    }
+    prevIsDeleting.current = isDeleting;
+  }, [isDeleting]);
+
   return (
     <div className="mt-5 border-t border-white/8 pt-5">
-      {confirming ? (
-        <div className="rounded-lg border border-red-400/20 bg-red-400/5 p-3">
-          <p className="text-sm font-bold text-white">
-            Remove {teamName} from this tournament?
-          </p>
-          <p className="mt-1 text-xs leading-5 text-slate-400">
-            This removes the locally saved team record.
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              className="min-h-11 rounded-lg border border-white/10 text-sm font-bold text-slate-300"
-              type="button"
-              onClick={() => setConfirming(false)}
-              disabled={isDeleting}
-            >
+      <AlertDialog
+        open={open}
+        onOpenChange={(val) => {
+          if (!isDeleting) setOpen(val);
+        }}
+      >
+        <AlertDialogTrigger asChild>
+          <button
+            className="min-h-11 text-sm font-bold text-red-300 hover:text-red-200"
+            type="button"
+          >
+            Remove team
+          </button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {teamName} from this tournament?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the locally saved team record. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button" disabled={isDeleting}>
               Cancel
-            </button>
-            <button
-              className="min-h-11 rounded-lg bg-red-400 px-3 text-sm font-black text-slate-950 disabled:opacity-60"
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-400 text-slate-950 hover:bg-red-500 disabled:opacity-60"
               type="button"
-              onClick={onDelete}
               disabled={isDeleting}
+              onClick={(e) => {
+                e.preventDefault();
+                onDelete();
+              }}
             >
               {isDeleting ? "Removing…" : "Yes, remove"}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          className="min-h-11 text-sm font-bold text-red-300 hover:text-red-200"
-          type="button"
-          onClick={() => setConfirming(true)}
-        >
-          Remove team
-        </button>
-      )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

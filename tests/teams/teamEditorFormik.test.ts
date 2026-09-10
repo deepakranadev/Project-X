@@ -40,7 +40,7 @@ describe("Team Editor Formik Migration", () => {
       } as GuestTeam),
     } as unknown as GuestTeamRepository;
 
-    let onSavedWrapper = (_t: GuestTeam) => {};
+    let onSavedWrapper: (t: GuestTeam) => void = () => {};
     const { result, rerender } = renderHook(
       (props) => useTeamEditor(props.team, mockRepo, props.onSaved, vi.fn(), vi.fn()),
       { initialProps: { team: mockTeamA, onSaved: (t: GuestTeam) => onSavedWrapper(t) } }

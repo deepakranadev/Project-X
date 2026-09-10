@@ -27,7 +27,7 @@ export function TeamManagement({
     repository,
     onTeamsChanged,
   );
-  const { editingTeam, error, isReordering, notice, setEditingTeam } = controller;
+  const { editingTeam, error, isReordering, setEditingTeam } = controller;
 
   return (
     <div className="mt-5 space-y-5 sm:mt-7 sm:space-y-7">
@@ -38,14 +38,7 @@ export function TeamManagement({
         onCreated={controller.publishCreated}
       />
 
-      {notice ? (
-        <p
-          className="rounded-lg border border-lime-300/20 bg-lime-300/5 px-4 py-3 text-sm font-semibold text-lime-200"
-          role="status"
-        >
-          {notice}
-        </p>
-      ) : null}
+
       {error ? (
         <p
           className="rounded-lg border border-red-400/20 bg-red-400/5 px-4 py-3 text-sm text-red-300"

@@ -2,7 +2,6 @@
 
 import {
   type ChangeEvent,
-  useEffect,
 } from "react";
 
 import {
@@ -17,6 +16,13 @@ import { TEAM_LOGO_FILE_SIZE_LIMIT_MB } from "@/features/teams/validation";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/shared/ui/sheet";
 
 import { PersistedImagePreview } from "./PersistedImagePreview";
 import { TeamDeletionControls } from "./TeamDeletionControls";
@@ -45,14 +51,11 @@ export function TeamEditSheet({
   );
   const { formError, formik, isDeleting, isSaving, logo } = controller;
 
-  useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape" && !isSaving) onClose();
+  function handleOpenChange(open: boolean) {
+    if (!open && !controller.isLocked()) {
+      onClose();
     }
-
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [isSaving, onClose]);
+  }
 
   function handleLogoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0] ?? null;
@@ -60,33 +63,16 @@ export function TeamEditSheet({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 px-0 sm:items-center sm:px-5"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="edit-team-heading"
-    >
-      <div className="max-h-[92svh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-slate-700 bg-[#10151a] p-5 shadow-2xl sm:rounded-2xl sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="eyebrow">Roster details</p>
-            <h2
-              className="mt-2 text-2xl font-black text-white"
-              id="edit-team-heading"
-            >
-              Edit team
-            </h2>
-          </div>
-          <button
-            className="grid h-11 w-11 place-items-center rounded-lg text-2xl text-slate-400 hover:bg-white/5 hover:text-white"
-            type="button"
-            aria-label="Close team editor"
-            onClick={onClose}
-            disabled={isSaving}
-          >
-            ×
-          </button>
-        </div>
+    <Sheet open={true} onOpenChange={handleOpenChange}>
+      <SheetContent
+        className="max-h-[92svh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-slate-700 bg-[#10151a] p-5 shadow-2xl sm:rounded-2xl sm:p-6"
+        side="bottom"
+      >
+        <SheetHeader className="text-left mb-6">
+          <p className="eyebrow">Roster details</p>
+          <SheetTitle className="text-2xl font-black text-white">Edit team</SheetTitle>
+          <SheetDescription className="sr-only">Edit team details such as name, short name, slot, and logo.</SheetDescription>
+        </SheetHeader>
 
         <form className="mt-6 space-y-5" onSubmit={formik.handleSubmit} noValidate>
           <div>
@@ -208,7 +194,7 @@ export function TeamEditSheet({
           teamName={team.name}
           onDelete={() => void controller.deleteTeam()}
         />
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }

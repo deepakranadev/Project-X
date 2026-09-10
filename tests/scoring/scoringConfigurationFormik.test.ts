@@ -20,7 +20,7 @@ describe("Scoring Configuration Formik Migration", () => {
       } as unknown as GuestTournament),
     } as unknown as GuestTournamentRepository;
 
-    let onSavedWrapper = (_t: GuestTournament) => {};
+    let onSavedWrapper: (t: GuestTournament) => void = () => {};
     const { result, rerender } = renderHook(
       (props) => useScoringConfiguration(props.config, "t1", mockRepo, props.onSaved),
       {

@@ -78,13 +78,13 @@ test("shows the match-history guard and keeps the referenced team and Draft inta
   await page.getByRole("button", { name: "Edit Team Soul" }).click();
   const teamEditor = page.getByRole("dialog", { name: "Edit team" });
   await teamEditor.getByRole("button", { name: "Remove team" }).click();
-  await teamEditor.getByRole("button", { name: "Yes, remove" }).click();
+  await page.getByRole("button", { name: "Yes, remove" }).click();
 
   await expect(teamEditor.getByRole("alert")).toHaveText(
     "This team can't be deleted because it already has match history.",
   );
   await expect(teamEditor).toBeVisible();
-  await teamEditor.getByRole("button", { name: "Close team editor" }).click();
+  await teamEditor.getByRole("button", { name: "Close" }).click();
   await expect(page.getByRole("button", { name: "Edit Team Soul" })).toBeVisible();
   await expect(
     page.getByRole("region", { name: "TEAMS" }).getByRole("listitem"),

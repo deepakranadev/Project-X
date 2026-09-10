@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import "@/styles/globals.css";
+import { Toaster } from "@/shared/ui/sonner";
 
 export const metadata: Metadata = {
   title: {
@@ -14,7 +15,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster theme="dark" />
+      </body>
     </html>
   );
 }

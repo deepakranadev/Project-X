@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import {
   publishSuccessfulTeamMutation,
@@ -19,12 +20,11 @@ export function useTeamManagement(
   const [editingTeam, setEditingTeam] = useState<GuestTeam | null>(null);
   const [isReordering, setIsReordering] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   function publish(teams: readonly GuestTeam[], message: string) {
     onTeamsChanged(teams);
     setError(null);
-    setNotice(message);
+    toast(message);
   }
 
   async function move(teamIndex: number, direction: -1 | 1) {
@@ -56,7 +56,6 @@ export function useTeamManagement(
     error,
     isReordering,
     move,
-    notice,
     publishCreated: (roster: readonly GuestTeam[]) => publish(roster, "Roster saved on this device."),
     publishDeleted: (teamId: string) => publish(removeRosterTeam(teams, teamId), "Team removed from the roster."),
     publishSaved: (updated: GuestTeam) => publish(replaceRosterTeam(teams, updated), "Team changes saved."),

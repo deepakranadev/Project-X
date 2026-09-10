@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import type { TournamentMatch } from "@/domain/matches/types";
 import type { Team } from "@/domain/teams/types";
@@ -19,7 +20,6 @@ export function useMatchManagement(
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -47,7 +47,6 @@ export function useMatchManagement(
     }
     setIsCreating(true);
     setError(null);
-    setNotice(null);
     try {
       const snapshot = await createGuestMatchWithInitialResults({
         tournamentId,
@@ -57,7 +56,7 @@ export function useMatchManagement(
       });
       setMatches((current) => [...current, snapshot.match]);
       setActiveMatch(snapshot.match);
-      setNotice(`Match ${snapshot.match.matchNumber} created. Draft saved on this device.`);
+      toast(`Match ${snapshot.match.matchNumber} created. Draft saved on this device.`);
       onMatchesChanged();
       window.setTimeout(() => {
         document.getElementById("match-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -77,7 +76,7 @@ export function useMatchManagement(
       if (latest.status === "FINALIZED") {
         openedMatch = await repositories.lifecycle.reopenMatch(tournamentId, latest.id);
         setMatches((current) => current.map((candidate) => candidate.id === openedMatch.id ? openedMatch : candidate));
-        setNotice(`Match ${openedMatch.matchNumber} reopened as a draft. Finalize it again after reviewing changes.`);
+        toast(`Match ${openedMatch.matchNumber} reopened as a draft. Finalize it again after reviewing changes.`);
         onMatchesChanged();
       }
       setActiveMatch(openedMatch);
@@ -87,17 +86,25 @@ export function useMatchManagement(
     }
   }
 
+  const [isDeletingMatch, setIsDeletingMatch] = useState(false);
+  const deleteLockRef = useRef(false);
+
   async function deleteMatch(match: TournamentMatch) {
-    if (!window.confirm(`Delete Match ${match.matchNumber}? Its saved result draft will also be removed.`)) return;
+    if (deleteLockRef.current) return;
+    deleteLockRef.current = true;
+    setIsDeletingMatch(true);
     try {
       await repositories.matches.deleteMatch(tournamentId, match.id);
       setMatches((current) => current.filter((candidate) => candidate.id !== match.id));
       setActiveMatch((current) => current?.id === match.id ? null : current);
-      setNotice(`Match ${match.matchNumber} and its results were deleted.`);
+      toast(`Match ${match.matchNumber} and its results were deleted.`);
       setError(null);
       onMatchesChanged();
     } catch {
       setError("The match could not be deleted. Try again.");
+    } finally {
+      deleteLockRef.current = false;
+      setIsDeletingMatch(false);
     }
   }
 
@@ -117,9 +124,9 @@ export function useMatchManagement(
     error,
     handleMatchChange,
     isCreating,
+    isDeletingMatch,
     isLoading,
     matches,
-    notice,
     openMatch,
   };
 }

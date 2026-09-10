@@ -54,8 +54,8 @@ test("updates overall standings as a match is finalized, reopened, re-finalized,
     page.locator("[data-standings-mobile] [data-standing-team]").filter({ hasText: "Team Soul" }),
   ).toContainText("12");
 
-  page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete Match 1" }).click();
+  await page.getByRole("button", { name: "Delete Match" }).click();
   await page.getByRole("link", { name: "Standings", exact: true }).click();
   await expect(page.getByText("No finalized matches yet.", { exact: true })).toBeVisible();
 

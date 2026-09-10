@@ -4,6 +4,18 @@ import type { Team } from "@/domain/teams/types";
 import type { MatchFeatureRepositories } from "@/features/matches/matchFeatureRepositories";
 import { useMatchManagement } from "@/features/matches/useMatchManagement";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/shared/ui/alert-dialog";
+
 import { MatchEntry } from "./MatchEntry";
 
 interface MatchManagementProps {
@@ -25,7 +37,7 @@ export function MatchManagement({
     repositories,
     onMatchesChanged,
   );
-  const { activeMatch, error, isCreating, isLoading, matches, notice } = controller;
+  const { activeMatch, error, isCreating, isDeletingMatch, isLoading, matches } = controller;
 
   return (
     <section className="mt-10 scroll-mt-4 sm:mt-14" id="matches">
@@ -47,7 +59,7 @@ export function MatchManagement({
         </button>
       </div>
 
-      {notice ? <p className="mt-4 rounded-lg border border-lime-300/20 bg-lime-300/5 px-4 py-3 text-sm font-semibold text-lime-200" role="status">{notice}</p> : null}
+
       {error ? <p className="mt-4 rounded-lg border border-red-400/20 bg-red-400/5 px-4 py-3 text-sm text-red-300" role="alert">{error}</p> : null}
 
       <div className="panel mt-5 overflow-hidden">
@@ -80,14 +92,35 @@ export function MatchManagement({
                 <span className={`rounded-full px-2.5 py-1 text-xs font-black ${match.status === "FINALIZED" ? "bg-lime-300/10 text-lime-200" : "bg-amber-300/10 text-amber-200"}`}>
                   {match.status === "FINALIZED" ? "Finalized" : "Draft"}
                 </span>
-                <button
-                  className="min-h-11 rounded-lg px-2 text-xs font-bold text-red-300 hover:bg-red-400/10"
-                  type="button"
-                  aria-label={`Delete Match ${match.matchNumber}`}
-                  onClick={() => void controller.deleteMatch(match)}
-                >
-                  Delete
-                </button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      className="min-h-11 rounded-lg px-2 text-xs font-bold text-red-300 hover:bg-red-400/10 disabled:opacity-50"
+                      type="button"
+                      aria-label={`Delete Match ${match.matchNumber}`}
+                      disabled={isDeletingMatch}
+                    >
+                      Delete
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Match {match.matchNumber}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Its saved result draft will also be removed. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        type="button"
+                        onClick={() => void controller.deleteMatch(match)}
+                      >
+                        Delete Match
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </li>
             ))}
           </ul>

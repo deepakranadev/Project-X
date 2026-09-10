@@ -136,6 +136,7 @@ export function useTeamEditor(
     formError,
     formik,
     isDeleting: activeAction === "delete",
+    isLocked: () => actionLock.current !== null,
     isSaving: activeAction === "save",
     logo,
     removeLogo: () => setLogo(null),
