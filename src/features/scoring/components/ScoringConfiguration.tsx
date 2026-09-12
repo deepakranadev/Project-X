@@ -36,23 +36,28 @@ export function ScoringConfiguration({
     tiebreakError } = controller;
 
   return (
-    <section className="mt-10 scroll-mt-4 sm:mt-14" id="scoring">
-      <p className="eyebrow">03 · Scoring</p>
-      <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+    <section className="mt-8 scroll-mt-24 md:scroll-mt-10 sm:mt-12" id="scoring">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-black text-muted" aria-hidden="true">
+          03
+        </span>
+        <p className="eyebrow">Scoring</p>
+      </div>
+      <div className="mt-2 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-white sm:text-3xl">
+          <h2 className="text-2xl font-black text-foreground sm:text-3xl">
             Configure scoring
           </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
             Choose the standard BGMI rules or adjust the values for this
             tournament.
           </p>
         </div>
         <span
-          className={`rounded-full px-3 py-1 text-xs font-bold ${
+          className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${
             isDirty
-              ? "bg-amber-300/10 text-amber-200"
-              : "bg-lime-300/10 text-lime-200"
+              ? "border-amber-500/20 bg-amber-50 text-amber-900"
+              : "border-green-500/20 bg-green-50 text-green-900"
           }`}
           role="status"
         >
@@ -61,14 +66,14 @@ export function ScoringConfiguration({
       </div>
 
       <form className="panel mt-5 overflow-hidden" onSubmit={formik.handleSubmit} noValidate>
-        <div className="border-b border-white/8 p-5 sm:p-6">
+        <div className="border-b border-border p-5 sm:p-6 bg-surface">
           <span className="field-label">Scoring rules</span>
-          <div className="grid grid-cols-2 gap-2" role="group" aria-label="Scoring preset">
+          <div className="mt-2 grid grid-cols-2 gap-2" role="group" aria-label="Scoring preset">
             <button
-              className={`min-h-12 rounded-lg border px-3 text-sm font-black transition-colors ${
+              className={`min-h-12 rounded-lg border px-3 text-sm font-bold transition-colors ${
                 draft.preset === "BGMI_STANDARD"
-                  ? "border-lime-300 bg-lime-300 text-slate-950"
-                  : "border-white/10 bg-white/3 text-slate-300"
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-background text-muted-foreground hover:bg-surface-raised"
               }`}
               type="button"
               aria-pressed={draft.preset === "BGMI_STANDARD"}
@@ -77,10 +82,10 @@ export function ScoringConfiguration({
               BGMI Standard
             </button>
             <button
-              className={`min-h-12 rounded-lg border px-3 text-sm font-black transition-colors ${
+              className={`min-h-12 rounded-lg border px-3 text-sm font-bold transition-colors ${
                 draft.preset === "CUSTOM"
-                  ? "border-lime-300 bg-lime-300 text-slate-950"
-                  : "border-white/10 bg-white/3 text-slate-300"
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-background text-muted-foreground hover:bg-surface-raised"
               }`}
               type="button"
               aria-pressed={draft.preset === "CUSTOM"}
@@ -91,7 +96,7 @@ export function ScoringConfiguration({
           </div>
         </div>
 
-        <div className="space-y-8 p-5 sm:p-6">
+        <div className="space-y-8 p-5 sm:p-6 bg-background">
           <PlacementPointsEditor
             rows={draft.placementPoints}
             errors={placementErrors}
@@ -109,7 +114,7 @@ export function ScoringConfiguration({
               Points per finish
             </Label>
             <Input
-              className="field-control font-black tabular-nums"
+              className="field-control font-black tabular-nums mt-1.5"
               id="pointsPerFinish"
               type="number"
               inputMode="decimal"
@@ -117,11 +122,12 @@ export function ScoringConfiguration({
               step="0.01"
               value={draft.pointsPerFinish}
               aria-invalid={Boolean(finishError)}
+              disabled={draft.preset === "BGMI_STANDARD"}
               onChange={(event) =>
                 applyChange({ pointsPerFinish: event.currentTarget.value })
               }
             />
-            {finishError ? <p className="field-error">{finishError}</p> : null}
+            {finishError ? <p className="field-error mt-2">{finishError}</p> : null}
           </div>
 
           <TiebreakerEditor
@@ -131,19 +137,19 @@ export function ScoringConfiguration({
           />
 
           {generalIssues.length > 0 ? (
-            <ul className="space-y-1 rounded-lg border border-red-400/20 bg-red-400/5 p-3 text-sm text-red-300" role="alert">
+            <ul className="space-y-1 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400" role="alert">
               {generalIssues.map((issue) => (
                 <li key={`${issue.field}-${issue.message}`}>{issue.message}</li>
               ))}
             </ul>
           ) : null}
           {saveError ? (
-            <p className="rounded-lg border border-red-400/20 bg-red-400/5 p-3 text-sm text-red-300" role="alert">
+            <p className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400" role="alert">
               {saveError}
             </p>
           ) : null}
           {saved ? (
-            <p className="rounded-lg border border-lime-300/20 bg-lime-300/5 p-3 text-sm font-bold text-lime-200" role="status">
+            <p className="rounded-lg border border-green-500/20 bg-green-50 p-3 text-sm font-bold text-green-900" role="status">
               Scoring saved
             </p>
           ) : null}

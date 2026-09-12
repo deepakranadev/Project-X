@@ -1,6 +1,9 @@
 # Active Task
 
-**Status:** ACTIVE IMPLEMENTATION TASK: UI-L1
+**Status:** NOT STARTED
+**Next Stage:** UI-L3 — MatchEntry + Overall Standings
 
 **Focus:**
-UI-L1 — Light Design Tokens + Responsive Application Shell
+Awaiting start of UI-L3.
+
+UI-L2 — Overview / Teams / Matches / Scoring is APPROVED.

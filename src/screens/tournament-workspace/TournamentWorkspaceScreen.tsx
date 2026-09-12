@@ -106,10 +106,9 @@ export function TournamentWorkspaceScreen({
         </header>
 
         <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-8 sm:py-10">
-          <section className="panel scroll-mt-24 md:scroll-mt-10 overflow-hidden" id="tournament">
-            <div className="h-1 bg-accent" />
-            <div className="p-5 sm:p-8">
-              <div className="flex items-start gap-4 sm:gap-6">
+          <section className="panel overflow-hidden" id="tournament">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 p-5 sm:p-8">
+              <div className="flex items-start gap-4 sm:gap-6 min-w-0">
                 {state.tournamentLogoUrl ? (
                   <StoredLogo
                     src={state.tournamentLogoUrl}
@@ -118,7 +117,7 @@ export function TournamentWorkspaceScreen({
                   />
                 ) : (
                   <div
-                    className="grid h-16 w-16 shrink-0 place-items-center rounded-xl border border-border bg-surface-raised text-xl font-black text-accent sm:h-20 sm:w-20"
+                    className="grid h-16 w-16 shrink-0 place-items-center rounded-xl border border-border bg-surface-raised text-xl font-black text-foreground sm:h-20 sm:w-20"
                     aria-hidden="true"
                   >
                     {tournament.name.charAt(0).toUpperCase()}
@@ -126,37 +125,39 @@ export function TournamentWorkspaceScreen({
                 )}
 
                 <div className="min-w-0 flex-1">
-                  <p className="eyebrow">Tournament workspace</p>
-                  <h1 className="mt-2 break-words text-3xl font-black tracking-[-0.04em] text-foreground sm:text-5xl">
-                    {tournament.name}
-                  </h1>
-                  <span className="mt-4 inline-flex rounded-md border border-accent/25 bg-accent/10 px-2.5 py-1 text-xs font-extrabold tracking-wide text-accent-strong">
+                  <span className="inline-flex rounded border border-border bg-surface-raised px-2 py-0.5 text-xs font-bold text-muted-foreground">
                     {tournament.game}
                   </span>
+                  <h1 className="mt-2 break-words text-2xl font-black tracking-[-0.02em] text-foreground sm:text-4xl">
+                    {tournament.name}
+                  </h1>
+                  {tournament.organizerName || tournament.organizerLogo ? (
+                    <div className="mt-3 flex items-center gap-2">
+                      {state.organizerLogoUrl ? (
+                        <StoredLogo
+                          src={state.organizerLogoUrl}
+                          alt="Organizer logo"
+                          className="h-5 w-5 rounded object-cover border border-border"
+                        />
+                      ) : null}
+                      {tournament.organizerName ? (
+                        <span className="text-sm font-semibold text-muted-foreground">
+                          <span className="mr-1">by</span>
+                          <span className="font-bold text-foreground">{tournament.organizerName}</span>
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </div>
-
-              {tournament.organizerName || tournament.organizerLogo ? (
-                <div className="mt-7 flex items-center gap-3 border-t border-border pt-5">
-                  {state.organizerLogoUrl ? (
-                    <StoredLogo
-                      src={state.organizerLogoUrl}
-                      alt="Organizer logo"
-                      className="h-10 w-10 rounded-lg border border-border object-cover"
-                    />
-                  ) : null}
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                      Organizer
-                    </p>
-                    {tournament.organizerName ? (
-                      <p className="mt-1 font-bold text-foreground">
-                        {tournament.organizerName}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
+              <div className="shrink-0 w-full sm:w-auto border-t border-border pt-5 sm:border-t-0 sm:pt-0">
+                <a 
+                  href="#matches" 
+                  className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-foreground px-6 text-sm font-bold text-background transition-colors hover:bg-foreground/90 sm:w-auto"
+                >
+                  Enter Match Results &rarr;
+                </a>
+              </div>
             </div>
           </section>
 

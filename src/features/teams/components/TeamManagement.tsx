@@ -41,7 +41,7 @@ export function TeamManagement({
 
       {error ? (
         <p
-          className="rounded-lg border border-red-400/20 bg-red-400/5 px-4 py-3 text-sm text-red-300"
+          className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400"
           role="alert"
         >
           {error}
@@ -56,9 +56,9 @@ export function TeamManagement({
           onMove={(index, direction) => void controller.move(index, direction)}
         />
       ) : (
-        <section className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/35 p-5 text-center sm:p-7">
-          <p className="text-sm font-bold text-white">No teams added yet</p>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
+        <section className="rounded-2xl border border-dashed border-border bg-surface-raised/50 p-5 text-center sm:p-7">
+          <p className="text-sm font-bold text-foreground">No teams added yet</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
             Paste the roster above. Slots are assigned automatically in order.
           </p>
         </section>

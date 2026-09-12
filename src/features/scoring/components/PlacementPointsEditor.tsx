@@ -20,14 +20,14 @@ export function PlacementPointsEditor({
     <div>
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h3 className="text-xs font-black tracking-[0.16em] text-slate-300">
-            PLACEMENT POINTS
+          <h3 className="text-sm font-bold text-foreground">
+            Placement Points
           </h3>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
             Points awarded for each final placement.
           </p>
         </div>
-        <span className="text-xs font-bold text-slate-500">1–16</span>
+        <span className="text-xs font-bold text-muted-foreground bg-surface-raised px-2 py-0.5 rounded-full">1–16</span>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
@@ -36,14 +36,14 @@ export function PlacementPointsEditor({
           const error = errors[row.placement];
           return (
             <label
-              className="grid min-w-0 grid-cols-[minmax(0,1fr)_4.25rem] items-center gap-2 rounded-lg border border-white/8 bg-black/15 p-2.5"
+              className="grid min-w-0 grid-cols-[minmax(0,1fr)_4.25rem] items-center gap-2 rounded-lg border border-border bg-surface-raised p-2"
               key={row.placement}
             >
-              <span className="text-sm font-extrabold text-slate-300">
+              <span className="text-sm font-bold text-muted-foreground pl-1">
                 {label}
               </span>
               <input
-                className="min-h-10 min-w-0 w-full rounded-md border border-slate-700 bg-[#080d11] px-2 text-center font-black tabular-nums text-white outline-none focus:border-lime-300"
+                className="min-h-10 min-w-0 w-full rounded-md border border-border bg-background px-2 text-center font-black tabular-nums text-foreground outline-none focus:border-foreground"
                 type="number"
                 inputMode="decimal"
                 min={0}
@@ -56,7 +56,7 @@ export function PlacementPointsEditor({
                 }
               />
               {error ? (
-                <span className="col-span-2 text-xs leading-4 text-red-300">
+                <span className="col-span-2 text-xs leading-4 text-red-600 dark:text-red-400">
                   {error}
                 </span>
               ) : null}

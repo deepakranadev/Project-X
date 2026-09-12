@@ -18,14 +18,14 @@ function TeamMark({ team }: { readonly team: GuestTeam }) {
       <PersistedImagePreview
         image={team.logo}
         alt={`${team.name} logo`}
-        className="h-10 w-10 shrink-0 rounded-lg border border-white/10 bg-white/5 object-cover"
+        className="h-9 w-9 shrink-0 rounded-lg border border-border bg-surface-raised object-cover"
       />
     );
   }
 
   return (
     <span
-      className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/5 text-sm font-black text-lime-300"
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-surface-raised text-sm font-black text-foreground"
       aria-hidden="true"
     >
       {team.name.charAt(0).toUpperCase()}
@@ -41,41 +41,41 @@ export function TeamRoster({
 }: TeamRosterProps) {
   return (
     <section className="panel overflow-hidden" aria-labelledby="teams-heading">
-      <div className="flex items-center justify-between border-b border-white/8 px-4 py-4 sm:px-6">
+      <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 sm:px-6">
         <h2
-          className="text-xs font-black tracking-[0.18em] text-slate-300"
+          className="text-xs font-black tracking-[0.18em] text-muted-foreground"
           id="teams-heading"
         >
           TEAMS
         </h2>
-        <span className="text-sm font-black text-lime-300">{teams.length}</span>
+        <span className="text-xs font-bold text-foreground bg-surface-raised px-2 py-0.5 rounded-full border border-border">{teams.length} registered</span>
       </div>
 
-      <ol className="divide-y divide-white/6">
+      <ol className="divide-y divide-border bg-background">
         {teams.map((team, index) => (
           <li
-            className="grid min-w-0 grid-cols-[2.7rem_2.5rem_minmax(0,1fr)_auto] items-center gap-2.5 px-3 py-3 sm:grid-cols-[3.25rem_2.5rem_minmax(0,1fr)_auto] sm:gap-4 sm:px-6"
+            className="grid min-w-0 grid-cols-[2rem_2.25rem_minmax(0,1fr)_auto] items-center gap-2.5 px-3 py-2.5 sm:grid-cols-[2.5rem_2.25rem_minmax(0,1fr)_auto] sm:gap-3 sm:px-6 hover:bg-surface-raised/50 transition-colors"
             key={team.id}
           >
-            <span className="text-sm font-black tabular-nums text-slate-400">
+            <span className="text-xs font-black tabular-nums text-muted-foreground">
               {team.slotNumber === null ? "—" : `#${team.slotNumber}`}
             </span>
             <TeamMark team={team} />
             <span className="min-w-0">
-              <span className="block truncate text-sm font-extrabold text-white sm:text-base">
+              <span className="block truncate text-sm font-bold text-foreground">
                 {team.name}
               </span>
               {team.shortName ? (
-                <span className="mt-0.5 block truncate text-xs font-semibold text-slate-500">
+                <span className="block truncate text-[11px] font-semibold text-muted-foreground">
                   {team.shortName}
                 </span>
               ) : null}
             </span>
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-0.5 sm:gap-1">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-8 text-slate-500 hover:bg-white/5 hover:text-white disabled:opacity-25"
+                className="h-8 w-7 text-muted-foreground hover:bg-surface hover:text-foreground disabled:opacity-25"
                 type="button"
                 aria-label={`Move ${team.name} up`}
                 title="Move up"
@@ -87,7 +87,7 @@ export function TeamRoster({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-8 text-slate-500 hover:bg-white/5 hover:text-white disabled:opacity-25"
+                className="h-8 w-7 text-muted-foreground hover:bg-surface hover:text-foreground disabled:opacity-25"
                 type="button"
                 aria-label={`Move ${team.name} down`}
                 title="Move down"
@@ -99,7 +99,7 @@ export function TeamRoster({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 min-h-9 border-white/10 px-2.5 text-xs font-bold text-slate-300 hover:border-lime-300/40 hover:text-lime-300"
+                className="ml-1 h-8 min-h-8 border-border bg-surface px-2.5 text-xs font-semibold text-foreground hover:bg-surface-raised"
                 type="button"
                 aria-label={`Edit ${team.name}`}
                 onClick={() => onEdit(team)}
