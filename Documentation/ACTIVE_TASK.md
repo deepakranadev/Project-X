@@ -1,9 +1,9 @@
 # Active Task
 
-**Status:** NOT STARTED
-**Next Stage:** UI-L3 — MatchEntry + Overall Standings
+**Status:** APPROVED: UI-L3
 
 **Focus:**
-Awaiting start of UI-L3.
+UI-L3 — MatchEntry + Overall Standings
 
-UI-L2 — Overview / Teams / Matches / Scoring is APPROVED.
+**Next Stage:**
+UI-L4 — Responsive / Accessibility / Regression Hardening (NOT STARTED)

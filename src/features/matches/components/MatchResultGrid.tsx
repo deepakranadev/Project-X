@@ -28,8 +28,8 @@ export function MatchResultGrid({
 }: MatchResultGridProps) {
   const teamById = new Map(teams.map((team) => [team.id, team]));
   return (
-    <div className="divide-y divide-white/6" data-testid="manual-result-grid">
-      <div className="grid grid-cols-[minmax(0,1fr)_3.75rem_3.75rem_3.25rem] gap-1.5 bg-white/2 px-3 py-2 text-[0.68rem] font-black uppercase tracking-wide text-slate-500 sm:grid-cols-[minmax(0,1fr)_5rem_5rem_4.5rem] sm:gap-3 sm:px-6">
+    <div className="divide-y divide-border bg-surface" data-testid="manual-result-grid">
+      <div className="grid grid-cols-[minmax(0,1fr)_3.75rem_3.75rem_3.25rem] gap-1.5 border-b border-border bg-surface-raised px-3 py-2 text-[0.68rem] font-black uppercase tracking-wide text-muted-foreground sm:grid-cols-[minmax(0,1fr)_5rem_5rem_4.5rem] sm:gap-3 sm:px-6">
         <span>Team</span><span className="text-center">Place</span><span className="text-center">Fin</span><span className="text-center">DNP</span>
       </div>
       {results.map((result, index) => (

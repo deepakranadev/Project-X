@@ -30,16 +30,16 @@ export function OverallStandings({
       <p className="eyebrow">05 · Overall standings</p>
       <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-black text-white sm:text-3xl">
+          <h2 className="text-2xl font-black text-foreground sm:text-3xl">
             Overall points table
           </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
             Calculated from finalized matches using this tournament’s scoring
             rules.
           </p>
         </div>
         {state.status === "ready" && state.snapshot.finalizedMatchCount > 0 ? (
-          <span className="rounded-full bg-lime-300/10 px-3 py-1 text-xs font-black text-lime-200">
+          <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-700 border border-emerald-500/20">
             {matchCountLabel(state.snapshot.finalizedMatchCount)}
           </span>
         ) : null}
@@ -47,17 +47,17 @@ export function OverallStandings({
 
       <div className="panel mt-5 overflow-hidden">
         {state.status === "loading" ? (
-          <p className="p-6 text-sm text-slate-400" role="status">
+          <p className="p-6 text-sm text-muted-foreground" role="status">
             Calculating standings…
           </p>
         ) : null}
 
         {state.status === "error" ? (
-          <div className="p-6" role="alert">
-            <p className="text-sm font-black text-red-200">
+          <div className="p-6 bg-red-500/5" role="alert">
+            <p className="text-sm font-black text-red-700">
               Standings could not be calculated.
             </p>
-            <p className="mt-2 text-sm leading-6 text-red-300">
+            <p className="mt-2 text-sm leading-6 text-red-600">
               Reopen the affected finalized match and correct its result rows,
               then finalize it again.
             </p>
@@ -66,13 +66,13 @@ export function OverallStandings({
 
         {state.status === "ready" &&
         state.snapshot.finalizedMatchCount === 0 ? (
-          <div className="p-7 text-center" role="status">
-            <p className="text-sm font-black text-white">
+          <div className="p-7 text-center bg-surface" role="status">
+            <p className="text-sm font-black text-foreground">
               {state.snapshot.totalMatchCount === 0
                 ? "No finalized matches yet."
                 : "Only draft matches exist."}
             </p>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {state.snapshot.totalMatchCount === 0
                 ? "Create and finalize a match to calculate the points table."
                 : "Finalize a draft match to add it to the points table."}

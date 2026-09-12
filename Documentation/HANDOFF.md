@@ -3,11 +3,20 @@
 ## CURRENT STATUS
 
 - UI-L2 — Overview / Teams / Matches / Scoring is APPROVED.
-- UI-L3 — MatchEntry + Overall Standings NOT STARTED.
+- UI-L3 — MatchEntry + Overall Standings is APPROVED.
+- UI-L4 — Responsive / Accessibility / Regression Hardening NOT STARTED.
 - Export UI-G1 NOT started.
 - dark theme deferred until after end-to-end beta release and stabilization.
 
-## UI-L2 IMPLEMENTATION
+## UI-L3 IMPLEMENTATION
+
+- **MatchEntry:** Restyled `MatchEntryForm`, `MatchResultGrid`, and `MatchResultRow` to pure-light theme.
+  - Preserved Match Name, zero vs blank semantics, DNP behavior, and `React.memo` performance optimizations.
+  - Kept keyboard navigation, autosave coordinator, and Finalize behaviors completely intact.
+  - Retained the global bottom nav during MatchEntry to avoid lifting controller state and violating R2 frozen architecture.
+- **Overall Standings:** Restyled `OverallStandings` and `StandingsRows` for both desktop (table) and mobile (list).
+  - Explicitly excluded the non-functional "Export Points Table" and "By Match" screenshot elements to align with domain reality.
+  - Preserved rank derivation semantics, including handling exact ties, and tabular-nums spacing for decimal scoring.
 
 - **Files Changed:** 
   - `src/screens/tournament-workspace/TournamentWorkspaceScreen.tsx`
