@@ -2,32 +2,33 @@
 
 ## CURRENT STATUS
 
-- R2A–R2L complete and externally approved
-- frontend architecture frozen as the current baseline
-- no unfinished R2 implementation work
-- no production changes made by R2L
-- UI/design phase not started
-- frontend/backend restructuring not started
-- backend not started
+- UI-L1 implementation complete
+- awaiting external review
+- Export UI-G1 NOT started
+- UI-L2 NOT started
+- dark theme NOT started
 
-## IMPORTANT CONSTRAINTS FOR UPCOMING UI PHASE
+## UI-L1 IMPLEMENTATION
 
-- correctness and data integrity remain non-negotiable
-- TTPT means Time To Points Table
-- MatchEntry hot-path behavior must not be degraded by redesign
-- no Formik in MatchEntry
-- native numeric inputs remain unless a proven equal/better solution exists
-- 500ms autosave/write-coordinator/latest-snapshot semantics remain
-- scoring remains deterministic
-- graphics/visual design must never become authoritative for scoring
-- current architecture boundaries remain frozen unless a concrete UI requirement proves a change necessary
+- **Files Changed:** `src/styles/globals.css`, `src/screens/tournament-workspace/TournamentWorkspaceScreen.tsx`, `src/app/layout.tsx`, `Documentation/ACTIVE_TASK.md`
+- **Tests Added:** `tests/ui/shell.test.tsx` (Validating exactly one light Toaster)
+- **Tokens Changed:** Removed glowing cyberpunk background gradients. Replaced raw colors with standard pure-light semantic tokens (`--surface`, `--background`, `--accent`, etc.) mapped to shadcn keys.
+- **Shell Structure:** Added a responsive layout wrapper.
+  - *Mobile:* Sticky pure-light header + Fixed pure-light bottom navigation exposing 5 core routes.
+  - *Desktop:* Fixed 64-width light sidebar exposing 5 core routes.
+- **Toaster Change:** `layout.tsx` Toaster is explicitly `theme="light"`.
 
-## FINAL VERIFICATION
+## VERIFICATION & FINDINGS
 
-- 293 Vitest
-- 7 Playwright
-- typecheck clean
-- lint 0/0
-- build clean
-- verify clean
-- IndexedDB v4
+- **Validation:** 294 Vitest, 7 Playwright passed perfectly. Typecheck, Lint, Build, and Verify are completely clean.
+- **Responsive Findings:** The new shell operates without causing horizontal overflow. Internal feature screens (MatchEntry, Standings) remain constrained securely within the main section container on 360px-430px devices.
+- **Limitations:** Feature screens (MatchEntry, Scoring, Matches) have not yet been redesigned to their final visual target. They are currently wrapped in the new shell using their R2 baseline visuals.
+
+## CONSTRAINTS MAINTAINED
+
+- MatchEntry behavior (numeric inputs, 500ms autosave, no-formik, snapshot write coordinator) is strictly maintained.
+- TiebreakerEditor was not touched or deleted.
+- Shared/ui boundaries respected.
+- IndexedDB remains v4.
+- Zero new dependencies.
+

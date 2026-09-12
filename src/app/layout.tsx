@@ -17,7 +17,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     <html lang="en">
       <body>
         {children}
-        <Toaster theme="dark" />
+        <Toaster theme="light" />
       </body>
     </html>
   );
