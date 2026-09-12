@@ -1,11 +1,12 @@
 "use client";
 
-import { type KeyboardEvent, useCallback, useRef } from "react";
+import { type KeyboardEvent, useCallback, useRef, useMemo } from "react";
 
 import type { TournamentMatch } from "@/domain/matches/types";
 import type { Team } from "@/domain/teams/types";
 import type { MatchLifecycleRepository } from "@/features/matches/matchLifecycleRepository";
 import type { MatchResultRepository } from "@/features/matches/matchResultRepository";
+import type { MatchWriteCoordinatorRegistry } from "@/features/matches/matchWriteCoordinator";
 import { useMatchDraftState } from "@/features/matches/useMatchDraftState";
 import { useMatchPersistence } from "@/features/matches/useMatchPersistence";
 
@@ -16,6 +17,7 @@ interface MatchEntryProps {
   readonly match: TournamentMatch;
   readonly resultRepository: MatchResultRepository;
   readonly teams: readonly Team[];
+  readonly writeCoordinators: MatchWriteCoordinatorRegistry;
   readonly onClose: () => void;
   readonly onMatchChange: (match: TournamentMatch) => void;
 }
@@ -25,16 +27,24 @@ export function MatchEntry({
   match,
   resultRepository,
   teams,
+  writeCoordinators,
   onClose,
   onMatchChange,
 }: MatchEntryProps) {
   const editorRef = useRef<HTMLFormElement>(null);
-  const draft = useMatchDraftState(match, teams, resultRepository);
+  
+  const coordinator = useMemo(
+    () => writeCoordinators.getCoordinator(match.id),
+    [writeCoordinators, match.id]
+  );
+
+  const draft = useMatchDraftState(match, teams, resultRepository, coordinator);
   const persistence = useMatchPersistence(
     match,
     teams,
     lifecycleRepository,
     draft,
+    coordinator,
     onClose,
     onMatchChange,
   );

@@ -2,7 +2,8 @@
 
 import { useSyncExternalStore } from "react";
 
-import type { MatchFeatureRepositories } from "@/features/matches/matchFeatureRepositories";
+import type { MatchFeatureDependencies } from "@/features/matches/matchFeatureDependencies";
+import { createMatchWriteCoordinatorRegistry } from "@/features/matches/matchWriteCoordinator";
 import type { StandingsRepositories } from "@/features/standings/useOverallStandings";
 import type { GuestTeamRepository } from "@/features/teams/teamRepository";
 import type { GuestTournamentRepository } from "@/features/tournaments/tournamentRepository";
@@ -15,7 +16,7 @@ import { getClientTournamentRepository } from "@/infrastructure/persistence/inde
 export interface TournamentWorkspaceRepositories {
   readonly tournament: GuestTournamentRepository;
   readonly teams: GuestTeamRepository;
-  readonly matchFeature: MatchFeatureRepositories;
+  readonly matchFeature: MatchFeatureDependencies;
   readonly standings: StandingsRepositories;
 }
 
@@ -46,6 +47,7 @@ function getWorkspaceRepositorySnapshot(): TournamentWorkspaceRepositories {
       matches,
       results,
       teams,
+      writeCoordinators: createMatchWriteCoordinatorRegistry(),
     },
     standings: { matches, results },
   };

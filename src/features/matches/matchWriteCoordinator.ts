@@ -11,6 +11,7 @@ export interface MatchWriteCoordinator {
     write: () => Promise<T>,
   ): Promise<ExplicitActionResult<T>>;
   hasExplicitAction(): boolean;
+  whenIdle(): Promise<void>;
 }
 
 export function createMatchWriteCoordinator(): MatchWriteCoordinator {
@@ -43,5 +44,24 @@ export function createMatchWriteCoordinator(): MatchWriteCoordinator {
     enqueue,
     runExplicit,
     hasExplicitAction: () => explicitAction !== null,
+    whenIdle: () => tail,
+  };
+}
+
+export interface MatchWriteCoordinatorRegistry {
+  getCoordinator(matchId: string): MatchWriteCoordinator;
+}
+
+export function createMatchWriteCoordinatorRegistry(): MatchWriteCoordinatorRegistry {
+  const coordinators = new Map<string, MatchWriteCoordinator>();
+  return {
+    getCoordinator(matchId: string) {
+      let coordinator = coordinators.get(matchId);
+      if (!coordinator) {
+        coordinator = createMatchWriteCoordinator();
+        coordinators.set(matchId, coordinator);
+      }
+      return coordinator;
+    }
   };
 }

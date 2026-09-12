@@ -9,22 +9,19 @@ import type { Team } from "@/domain/teams/types";
 import { finalizeGuestMatch } from "./finalizeGuestMatch";
 import type { MatchDraftController } from "./useMatchDraftState";
 import type { MatchLifecycleRepository } from "./matchLifecycleRepository";
-import {
-  createMatchWriteCoordinator,
-  type ExplicitMatchAction,
-} from "./matchWriteCoordinator";
+import type { MatchWriteCoordinator, ExplicitMatchAction } from "./matchWriteCoordinator";
 
 export function useMatchPersistence(
   match: TournamentMatch,
   teams: readonly Team[],
   repository: MatchLifecycleRepository,
   draft: MatchDraftController,
+  coordinator: MatchWriteCoordinator,
   onClose: () => void,
   onMatchChange: (match: TournamentMatch) => void,
 ) {
   const [explicitAction, setExplicitAction] = useState<ExplicitMatchAction | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
-  const writeCoordinatorRef = useRef(createMatchWriteCoordinator());
   const {
     acceptPersistedResults,
     dirtyRef,
@@ -40,6 +37,31 @@ export function useMatchPersistence(
     window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = null;
   }, []);
+
+  const flushLatestSnapshot = useCallback(() => {
+    cancelPendingAutosave();
+    if (!dirtyRef.current || coordinator.hasExplicitAction()) return;
+
+    const savingName = nameRef.current;
+    const savingResults = resultsRef.current;
+
+    void coordinator.enqueue(async () => {
+      try {
+        await repository.saveMatchDraft({
+          tournamentId: match.tournamentId,
+          matchId: match.id,
+          name: savingName,
+          results: savingResults,
+        });
+      } catch (e) {
+        console.error("MatchEntry unmount flush failed:", e);
+      }
+    });
+  }, [cancelPendingAutosave, dirtyRef, match.id, match.tournamentId, nameRef, repository, resultsRef, coordinator]);
+
+  useEffect(() => {
+    return () => flushLatestSnapshot();
+  }, [flushLatestSnapshot]);
 
   const persistDraftSnapshot = useCallback(async (force = false): Promise<boolean> => {
     if (!force && !dirtyRef.current) return true;
@@ -68,9 +90,9 @@ export function useMatchPersistence(
 
   const queueAutosave = useCallback(() => {
     cancelPendingAutosave();
-    if (!dirtyRef.current || writeCoordinatorRef.current.hasExplicitAction()) return;
-    void writeCoordinatorRef.current.enqueue(() => persistDraftSnapshot());
-  }, [cancelPendingAutosave, dirtyRef, persistDraftSnapshot]);
+    if (!dirtyRef.current || coordinator.hasExplicitAction()) return;
+    void coordinator.enqueue(() => persistDraftSnapshot());
+  }, [cancelPendingAutosave, dirtyRef, persistDraftSnapshot, coordinator]);
 
   useEffect(() => {
     cancelPendingAutosave();
@@ -113,11 +135,11 @@ export function useMatchPersistence(
 
   async function close() {
     cancelPendingAutosave();
-    if (writeCoordinatorRef.current.hasExplicitAction()) return;
+    if (coordinator.hasExplicitAction()) return;
     setExplicitAction("close");
     let shouldClose = false;
     try {
-      const closed = await writeCoordinatorRef.current.runExplicit(
+      const closed = await coordinator.runExplicit(
         "close",
         () => persistDraftSnapshot(false),
       );
@@ -130,10 +152,10 @@ export function useMatchPersistence(
 
   async function save() {
     cancelPendingAutosave();
-    if (writeCoordinatorRef.current.hasExplicitAction()) return;
+    if (coordinator.hasExplicitAction()) return;
     setExplicitAction("save");
     try {
-      await writeCoordinatorRef.current.runExplicit("save", () => persistDraftSnapshot(true));
+      await coordinator.runExplicit("save", () => persistDraftSnapshot(true));
     } finally {
       setExplicitAction(null);
     }
@@ -141,12 +163,12 @@ export function useMatchPersistence(
 
   async function finalize() {
     cancelPendingAutosave();
-    if (writeCoordinatorRef.current.hasExplicitAction()) return;
+    if (coordinator.hasExplicitAction()) return;
     setExplicitAction("finalize");
     draft.setSaveState("saving");
     draft.setError(null);
     try {
-      await writeCoordinatorRef.current.runExplicit("finalize", async () => {
+      await coordinator.runExplicit("finalize", async () => {
         const latestResults = draft.resultsRef.current;
         const validation = validateManualMatchResults(latestResults, {
           tournamentId: match.tournamentId,

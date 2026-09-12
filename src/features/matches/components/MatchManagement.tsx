@@ -1,7 +1,7 @@
 "use client";
 
 import type { Team } from "@/domain/teams/types";
-import type { MatchFeatureRepositories } from "@/features/matches/matchFeatureRepositories";
+import type { MatchFeatureDependencies } from "@/features/matches/matchFeatureDependencies";
 import { useMatchManagement } from "@/features/matches/useMatchManagement";
 
 import {
@@ -21,8 +21,9 @@ import { MatchEntry } from "./MatchEntry";
 interface MatchManagementProps {
   readonly tournamentId: string;
   readonly teams: readonly Team[];
-  readonly repositories: MatchFeatureRepositories;
+  readonly repositories: MatchFeatureDependencies;
   readonly onMatchesChanged: () => void;
+  readonly onMatchOpened?: (matchId: string) => void;
 }
 
 export function MatchManagement({
@@ -30,12 +31,14 @@ export function MatchManagement({
   teams,
   repositories,
   onMatchesChanged,
+  onMatchOpened,
 }: MatchManagementProps) {
   const controller = useMatchManagement(
     tournamentId,
     teams,
     repositories,
     onMatchesChanged,
+    onMatchOpened,
   );
   const { activeMatch, error, isCreating, isDeletingMatch, isLoading, matches } = controller;
 
@@ -169,6 +172,7 @@ export function MatchManagement({
             teams={teams}
             lifecycleRepository={repositories.lifecycle}
             resultRepository={repositories.results}
+            writeCoordinators={repositories.writeCoordinators}
             onClose={controller.closeActiveMatch}
             onMatchChange={controller.handleMatchChange}
           />

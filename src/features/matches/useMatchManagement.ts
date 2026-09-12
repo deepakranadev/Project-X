@@ -7,13 +7,14 @@ import type { TournamentMatch } from "@/domain/matches/types";
 import type { Team } from "@/domain/teams/types";
 
 import { createGuestMatchWithInitialResults } from "./createGuestMatch";
-import type { MatchFeatureRepositories } from "./matchFeatureRepositories";
+import type { MatchFeatureDependencies } from "./matchFeatureDependencies";
 
 export function useMatchManagement(
   tournamentId: string,
   teams: readonly Team[],
-  repositories: MatchFeatureRepositories,
+  repositories: MatchFeatureDependencies,
   onMatchesChanged: () => void,
+  onMatchOpened?: (matchId: string) => void,
 ) {
   const [matches, setMatches] = useState<readonly TournamentMatch[]>([]);
   const [activeMatch, setActiveMatch] = useState<TournamentMatch | null>(null);
@@ -55,12 +56,17 @@ export function useMatchManagement(
         lifecycleRepository: repositories.lifecycle,
       });
       setMatches((current) => [...current, snapshot.match]);
-      setActiveMatch(snapshot.match);
       toast(`Match ${snapshot.match.matchNumber} created. Draft saved on this device.`);
       onMatchesChanged();
-      window.setTimeout(() => {
-        document.getElementById("match-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 0);
+      
+      if (onMatchOpened) {
+        onMatchOpened(snapshot.match.id);
+      } else {
+        setActiveMatch(snapshot.match);
+        window.setTimeout(() => {
+          document.getElementById("match-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
+      }
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "The match could not be created. Try again.");
     } finally {
@@ -79,7 +85,12 @@ export function useMatchManagement(
         toast(`Match ${openedMatch.matchNumber} reopened as a draft. Finalize it again after reviewing changes.`);
         onMatchesChanged();
       }
-      setActiveMatch(openedMatch);
+      
+      if (onMatchOpened) {
+        onMatchOpened(openedMatch.id);
+      } else {
+        setActiveMatch(openedMatch);
+      }
       setError(null);
     } catch (openError) {
       setError(openError instanceof Error ? openError.message : "The match could not be opened.");

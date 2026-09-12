@@ -14,7 +14,7 @@ vi.mock("sonner", () => ({
 import { toast } from "sonner";
 import { MatchManagement } from "@/features/matches/components/MatchManagement";
 import { useMatchManagement } from "@/features/matches/useMatchManagement";
-import type { MatchFeatureRepositories } from "@/features/matches/matchFeatureRepositories";
+import type { MatchFeatureDependencies } from "@/features/matches/matchFeatureDependencies";
 import type { TournamentMatch } from "@/domain/matches/types";
 
 const mockMatch: TournamentMatch = {
@@ -41,7 +41,7 @@ describe("Match Delete Interaction Tests", () => {
         listMatchesByTournament: vi.fn().mockResolvedValue([mockMatch]),
         deleteMatch: vi.fn(),
       },
-    } as unknown as MatchFeatureRepositories;
+    } as unknown as MatchFeatureDependencies;
 
     render(
       <MatchManagement
@@ -81,7 +81,7 @@ describe("Match Delete Interaction Tests", () => {
         listMatchesByTournament: vi.fn().mockResolvedValue([mockMatch]),
         deleteMatch: vi.fn().mockResolvedValue(undefined),
       },
-    } as unknown as MatchFeatureRepositories;
+    } as unknown as MatchFeatureDependencies;
 
     render(
       <MatchManagement
@@ -113,7 +113,7 @@ describe("Match Delete Interaction Tests", () => {
         listMatchesByTournament: vi.fn().mockResolvedValue([mockMatch]),
         deleteMatch: vi.fn().mockRejectedValue(new Error("Fail")),
       },
-    } as unknown as MatchFeatureRepositories;
+    } as unknown as MatchFeatureDependencies;
 
     render(
       <MatchManagement
@@ -153,7 +153,7 @@ describe("Match Delete Interaction Tests", () => {
         listMatchesByTournament: vi.fn().mockResolvedValue([mockMatch]),
         deleteMatch: deleteMock,
       },
-    } as unknown as MatchFeatureRepositories;
+    } as unknown as MatchFeatureDependencies;
 
     const { result } = renderHook(() => useMatchManagement("t1", [], mockRepos, vi.fn()));
 

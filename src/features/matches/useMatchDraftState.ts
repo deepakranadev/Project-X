@@ -15,6 +15,7 @@ import {
 import { createMatchId, currentMatchTimestamp } from "./matchFactories";
 import type { MatchResultRepository } from "./matchResultRepository";
 import { loadMatchEntryDraft } from "./loadMatchEntryDraft";
+import type { MatchWriteCoordinator } from "./matchWriteCoordinator";
 
 export type MatchSaveState = "idle" | "saving" | "saved" | "error";
 
@@ -22,6 +23,7 @@ export function useMatchDraftState(
   match: TournamentMatch,
   teams: readonly Team[],
   repository: MatchResultRepository,
+  coordinator: MatchWriteCoordinator,
 ) {
   const [results, setResults] = useState<readonly StoredMatchResult[]>([]);
   const [draftName, setDraftName] = useState(match.name ?? "");
@@ -64,6 +66,8 @@ export function useMatchDraftState(
     loadedMatchIdRef.current = null;
     async function load() {
       try {
+        await coordinator.whenIdle();
+        if (!active) return;
         const loaded = await loadMatchEntryDraft({
           tournamentId: match.tournamentId,
           matchId: match.id,
@@ -75,7 +79,8 @@ export function useMatchDraftState(
         dirtyRef.current = false;
         setIsDirty(false);
         loadedMatchIdRef.current = match.id;
-      } catch {
+      } catch (err) {
+        console.error("MatchDraft load failed!", err);
         if (active) {
           setError("The saved result draft could not be opened. Check browser storage permissions and try again.");
         }
@@ -87,7 +92,7 @@ export function useMatchDraftState(
     return () => {
       active = false;
     };
-  }, [match.id, match.tournamentId, replaceResults, repository]);
+  }, [match.id, match.tournamentId, replaceResults, repository, coordinator]);
 
   useEffect(() => {
     if (isLoading || loadedMatchIdRef.current !== match.id) return;
