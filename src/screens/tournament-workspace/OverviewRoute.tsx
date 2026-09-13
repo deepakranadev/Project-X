@@ -86,16 +86,18 @@ export function OverviewRoute({ tournamentId }: { readonly tournamentId: string 
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-8 md:py-8 flex flex-col gap-4 md:gap-6">
-      <OverviewSection
-        tournament={state.tournament}
-        teams={state.teams}
-        repositories={repositories.standings}
-        refreshVersion={0} // No edits happen on Overview route yet
-        tournamentLogoUrl={state.tournamentLogoUrl}
-        organizerLogoUrl={state.organizerLogoUrl}
-        onNavigate={(section) => router.push(`/tournaments/${tournamentId}/${section}`)}
-      />
+    <main className="flex-1 overflow-y-auto px-4 pt-3 pb-24 md:px-8 md:py-8 md:flex md:justify-center">
+      <div className="w-full max-w-4xl space-y-4 md:space-y-6">
+        <OverviewSection
+          tournament={state.tournament}
+          teams={state.teams}
+          repositories={repositories.standings}
+          refreshVersion={0} // No edits happen on Overview route yet
+          tournamentLogoUrl={state.tournamentLogoUrl}
+          organizerLogoUrl={state.organizerLogoUrl}
+          onNavigate={(section) => router.push(`/tournaments/${tournamentId}/${section}`)}
+        />
+      </div>
     </main>
   );
 }

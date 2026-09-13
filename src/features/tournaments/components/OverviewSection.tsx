@@ -26,7 +26,7 @@ export function OverviewSection({
   const dataState = useOverviewData(tournament, teams, repositories, refreshVersion);
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6 pb-24 md:pb-10">
+    <>
       {dataState.status === "loading" && (
         <div className="p-8 text-center text-slate-400 text-sm">Loading overview...</div>
       )}
@@ -38,6 +38,6 @@ export function OverviewSection({
       {dataState.status === "ready" && (
         <OverviewPresentation state={dataState} tournament={tournament} teams={teams} onNavigate={onNavigate} />
       )}
-    </div>
+    </>
   );
 }
