@@ -49,6 +49,7 @@ describe("Match Delete Interaction Tests", () => {
         teams={[]}
         repositories={mockRepos}
         onMatchesChanged={vi.fn()}
+        onMatchOpened={vi.fn()}
       />
     );
 
@@ -89,6 +90,7 @@ describe("Match Delete Interaction Tests", () => {
         teams={[]}
         repositories={mockRepos}
         onMatchesChanged={vi.fn()}
+        onMatchOpened={vi.fn()}
       />
     );
 
@@ -121,6 +123,7 @@ describe("Match Delete Interaction Tests", () => {
         teams={[]}
         repositories={mockRepos}
         onMatchesChanged={vi.fn()}
+        onMatchOpened={vi.fn()}
       />
     );
 
@@ -155,7 +158,7 @@ describe("Match Delete Interaction Tests", () => {
       },
     } as unknown as MatchFeatureDependencies;
 
-    const { result } = renderHook(() => useMatchManagement("t1", [], mockRepos, vi.fn()));
+    const { result } = renderHook(() => useMatchManagement("t1", [], mockRepos, vi.fn(), vi.fn()));
 
     await waitFor(() => {
       expect(result.current.matches.length).toBe(1);

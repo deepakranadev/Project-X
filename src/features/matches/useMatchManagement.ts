@@ -14,10 +14,9 @@ export function useMatchManagement(
   teams: readonly Team[],
   repositories: MatchFeatureDependencies,
   onMatchesChanged: () => void,
-  onMatchOpened?: (matchId: string) => void,
+  onMatchOpened: (matchId: string) => void,
 ) {
   const [matches, setMatches] = useState<readonly TournamentMatch[]>([]);
-  const [activeMatch, setActiveMatch] = useState<TournamentMatch | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,14 +58,7 @@ export function useMatchManagement(
       toast(`Match ${snapshot.match.matchNumber} created. Draft saved on this device.`);
       onMatchesChanged();
       
-      if (onMatchOpened) {
-        onMatchOpened(snapshot.match.id);
-      } else {
-        setActiveMatch(snapshot.match);
-        window.setTimeout(() => {
-          document.getElementById("match-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 0);
-      }
+      onMatchOpened(snapshot.match.id);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "The match could not be created. Try again.");
     } finally {
@@ -86,11 +78,7 @@ export function useMatchManagement(
         onMatchesChanged();
       }
       
-      if (onMatchOpened) {
-        onMatchOpened(openedMatch.id);
-      } else {
-        setActiveMatch(openedMatch);
-      }
+      onMatchOpened(openedMatch.id);
       setError(null);
     } catch (openError) {
       setError(openError instanceof Error ? openError.message : "The match could not be opened.");
@@ -107,7 +95,6 @@ export function useMatchManagement(
     try {
       await repositories.matches.deleteMatch(tournamentId, match.id);
       setMatches((current) => current.filter((candidate) => candidate.id !== match.id));
-      setActiveMatch((current) => current?.id === match.id ? null : current);
       toast(`Match ${match.matchNumber} and its results were deleted.`);
       setError(null);
       onMatchesChanged();
@@ -121,15 +108,10 @@ export function useMatchManagement(
 
   const handleMatchChange = useCallback((updated: TournamentMatch) => {
     setMatches((current) => current.map((match) => match.id === updated.id ? updated : match));
-    setActiveMatch((current) => current?.id === updated.id ? updated : current);
     onMatchesChanged();
   }, [onMatchesChanged]);
 
-  const closeActiveMatch = useCallback(() => setActiveMatch(null), []);
-
   return {
-    activeMatch,
-    closeActiveMatch,
     createMatch,
     deleteMatch,
     error,

@@ -6,10 +6,11 @@ export const metadata: Metadata = {
   title: "Match Entry | Tournament",
 };
 
-export default function MatchEntryPage({
+export default async function MatchEntryPage({
   params,
 }: {
-  readonly params: { readonly id: string; readonly matchId: string };
+  readonly params: Promise<{ id: string; matchId: string }>;
 }) {
-  return <MatchEntryRoute tournamentId={params.id} matchId={params.matchId} />;
+  const { id, matchId } = await params;
+  return <MatchEntryRoute tournamentId={id} matchId={matchId} />;
 }

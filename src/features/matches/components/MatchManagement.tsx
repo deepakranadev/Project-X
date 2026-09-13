@@ -16,14 +16,13 @@ import {
   AlertDialogTrigger,
 } from "@/shared/ui/alert-dialog";
 
-import { MatchEntry } from "./MatchEntry";
 
 interface MatchManagementProps {
   readonly tournamentId: string;
   readonly teams: readonly Team[];
   readonly repositories: MatchFeatureDependencies;
   readonly onMatchesChanged: () => void;
-  readonly onMatchOpened?: (matchId: string) => void;
+  readonly onMatchOpened: (matchId: string) => void;
 }
 
 export function MatchManagement({
@@ -40,7 +39,7 @@ export function MatchManagement({
     onMatchesChanged,
     onMatchOpened,
   );
-  const { activeMatch, error, isCreating, isDeletingMatch, isLoading, matches } = controller;
+  const { error, isCreating, isDeletingMatch, isLoading, matches } = controller;
 
   return (
     <section className="mt-8 scroll-mt-24 md:scroll-mt-10 sm:mt-12" id="matches">
@@ -163,21 +162,6 @@ export function MatchManagement({
           </ul>
         )}
       </div>
-
-      {activeMatch ? (
-        <div className="scroll-mt-4" id="match-editor">
-          <MatchEntry
-            key={activeMatch.id}
-            match={activeMatch}
-            teams={teams}
-            lifecycleRepository={repositories.lifecycle}
-            resultRepository={repositories.results}
-            writeCoordinators={repositories.writeCoordinators}
-            onClose={controller.closeActiveMatch}
-            onMatchChange={controller.handleMatchChange}
-          />
-        </div>
-      ) : null}
     </section>
   );
 }

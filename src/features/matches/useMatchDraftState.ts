@@ -125,15 +125,15 @@ export function useMatchDraftState(
   }, []);
 
   const updateNumber = useCallback((resultId: string, field: "placement" | "kills", rawValue: string) => {
-    replaceResults(updateMatchResultNumber(resultsRef.current, resultId, field, rawValue));
+    replaceResults(updateMatchResultNumber(resultsRef.current, resultId, field, rawValue), true);
   }, [replaceResults]);
 
   const toggleDnp = useCallback((resultId: string) => {
-    replaceResults(toggleMatchResultDnp(resultsRef.current, resultId));
+    replaceResults(toggleMatchResultDnp(resultsRef.current, resultId), true);
   }, [replaceResults]);
 
   const autoFillPlacements = useCallback(() => {
-    replaceResults(autoFillMatchPlacements(resultsRef.current));
+    replaceResults(autoFillMatchPlacements(resultsRef.current), true);
   }, [replaceResults]);
 
   const acceptPersistedResults = useCallback((saved: readonly StoredMatchResult[], savingRevision: number) => {

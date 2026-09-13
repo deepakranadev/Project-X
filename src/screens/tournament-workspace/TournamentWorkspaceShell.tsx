@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 
-import { DesktopSidebar, MobileBottomNav, type WorkspaceSection } from "./TournamentWorkspaceNavigation";
+import { DesktopSidebar, MobileBottomNav } from "./TournamentWorkspaceNavigation";
 import { WorkspaceRepositoryProvider, useWorkspaceRepositories } from "./WorkspaceRepositoryProvider";
 
 function ShellContent({ tournamentId, children }: { readonly tournamentId: string; readonly children: ReactNode }) {
@@ -23,8 +23,6 @@ function ShellContent({ tournamentId, children }: { readonly tournamentId: strin
     return () => { active = false; };
   }, [repositories.tournament, tournamentId]);
 
-  // For ROUTE-R0, we use a fake active section until R4 cutover.
-  const activeSection: WorkspaceSection = "tournament";
 
   if (error) {
     return (
@@ -55,10 +53,7 @@ function ShellContent({ tournamentId, children }: { readonly tournamentId: strin
 
   return (
     <div className="min-h-[100svh] bg-background text-foreground flex flex-col md:flex-row">
-      <DesktopSidebar
-        activeSection={activeSection}
-        onNavigate={() => {}} // No-op during R0
-      />
+      <DesktopSidebar tournamentId={tournamentId} />
 
       <div className="flex-1 flex flex-col min-w-0 pb-[4.5rem] md:pb-0 h-screen overflow-y-auto">
         <header className="md:hidden flex items-center justify-between gap-4 px-4 pt-4 pb-3 border-b border-slate-200/60 bg-[#F8F9FB] sticky top-0 z-30">
@@ -77,7 +72,7 @@ function ShellContent({ tournamentId, children }: { readonly tournamentId: strin
         {children}
       </div>
 
-      <MobileBottomNav activeSection={activeSection} onNavigate={() => {}} />
+      <MobileBottomNav tournamentId={tournamentId} />
     </div>
   );
 }
