@@ -73,7 +73,7 @@ export function TeamsRoute({ tournamentId }: { readonly tournamentId: string }) 
 
   return (
     <main
-      className="flex-1 overflow-y-auto px-4 pt-4 pb-24 md:py-8 md:px-10 flex flex-col items-center"
+      className="w-full flex-1 px-4 pt-4 pb-24 md:py-8 md:px-10 flex flex-col items-center"
       data-purpose="teams-overview-main"
     >
       <div className="w-full max-w-5xl space-y-4 md:space-y-6">

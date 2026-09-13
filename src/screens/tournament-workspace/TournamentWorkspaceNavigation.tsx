@@ -43,7 +43,7 @@ export function DesktopSidebar({ tournamentId }: NavigationProps) {
   };
 
   return (
-    <aside className="hidden md:flex flex-col w-60 border-r border-slate-200 bg-white h-screen sticky top-0 flex-shrink-0" data-purpose="main-sidebar">
+    <aside className="hidden md:flex flex-col w-60 border-r border-slate-200 bg-white h-full flex-shrink-0" data-purpose="main-sidebar">
       <div>
         {/* Workspace / Brand Header */}
         <div className="h-16 px-5 border-b border-slate-100 flex items-center justify-between">

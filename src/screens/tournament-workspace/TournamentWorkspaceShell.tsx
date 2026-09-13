@@ -53,11 +53,11 @@ function ShellContent({ tournamentId, children }: { readonly tournamentId: strin
 
   return (
     <WorkspaceCountProvider tournamentId={tournamentId}>
-      <div className="min-h-[100svh] bg-slate-50 text-slate-900 flex flex-col md:flex-row antialiased select-none">
+      <div className="relative h-dvh max-h-dvh overflow-hidden flex flex-col md:flex-row antialiased select-none bg-slate-50 text-slate-900" data-purpose="workspace-shell-root">
         <DesktopSidebar tournamentId={tournamentId} />
 
-        <div className="flex-1 flex flex-col min-w-0 pb-[4.5rem] md:pb-0 h-screen overflow-y-auto">
-          <header className="md:hidden pt-4 pb-3 px-4 bg-[#F8F9FB] border-b border-slate-200/60 sticky top-0 z-30 flex items-center justify-between">
+        <div className="relative flex-1 min-h-0 min-w-0 flex flex-col h-full overflow-y-auto overflow-x-hidden scrollbar-none pb-[4.5rem] md:pb-0" data-purpose="workspace-scroll-container">
+          <header className="md:hidden pt-4 pb-3 px-4 bg-[#F8F9FB] border-b border-slate-200/60 sticky top-0 z-30 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
               <Link aria-label="Back to tournaments" className="w-8 h-8 -ml-1 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-200/60 transition-colors" href="/">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">

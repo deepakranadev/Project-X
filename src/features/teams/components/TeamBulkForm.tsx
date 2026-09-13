@@ -77,7 +77,7 @@ export function TeamBulkForm({
         Paste one team per line
       </label>
       <Textarea
-        className="mt-4 min-h-36 resize-y w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#e05305] focus:border-[#e05305] leading-6 font-sans shadow-xs"
+        className="mt-4 scrollbar-none min-h-36 resize-y w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#e05305] focus:border-[#e05305] leading-6 font-sans shadow-xs"
         id="bulkTeamNames"
         name="bulkTeamNames"
         value={pastedNames}

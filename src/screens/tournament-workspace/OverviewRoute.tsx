@@ -86,7 +86,7 @@ export function OverviewRoute({ tournamentId }: { readonly tournamentId: string 
   }
 
   return (
-    <main className="flex-1 overflow-y-auto px-4 pt-3 pb-24 md:px-8 md:py-8 md:flex md:justify-center">
+    <main className="w-full flex-1 px-4 pt-3 pb-24 md:px-8 md:py-8 md:flex md:justify-center" data-purpose="overview-main">
       <div className="w-full max-w-4xl space-y-4 md:space-y-6">
         <OverviewSection
           tournament={state.tournament}

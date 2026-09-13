@@ -1,18 +1,21 @@
 "use client";
 
+import React from "react";
 import type { ScoringConfig } from "@/domain/scoring/types";
+import type { Tournament } from "@/domain/tournaments/types";
 import { useScoringConfiguration } from "@/features/scoring/useScoringConfiguration";
 import type { GuestTournamentRepository } from "@/features/tournaments/tournamentRepository";
 import type { GuestTournament } from "@/features/tournaments/types";
 
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-
+import { ScoringHeaderSection } from "./ScoringHeaderSection";
+import { ScoringModeSelector } from "./ScoringModeSelector";
 import { PlacementPointsEditor } from "./PlacementPointsEditor";
+import { FinishPointsSection } from "./FinishPointsSection";
+import { ScoringSaveCard } from "./ScoringSaveCard";
 import { TiebreakerEditor } from "./TiebreakerEditor";
 
 interface ScoringConfigurationProps {
+  readonly tournament: Tournament;
   readonly initialConfig: ScoringConfig;
   readonly tournamentId: string;
   readonly repository: GuestTournamentRepository;
@@ -20,6 +23,7 @@ interface ScoringConfigurationProps {
 }
 
 export function ScoringConfiguration({
+  tournament,
   initialConfig,
   tournamentId,
   repository,
@@ -31,136 +35,103 @@ export function ScoringConfiguration({
     repository,
     onSaved,
   );
-  const { applyChange, draft, finishError, formik, generalIssues, isDirty, isSaving,
-    placementErrors, saveError, saved, selectCustom, selectStandardPreset,
-    tiebreakError } = controller;
+  const {
+    applyChange,
+    draft,
+    finishError,
+    formik,
+    generalIssues,
+    isDirty,
+    isSaving,
+    placementErrors,
+    saveError,
+    saved,
+    selectCustom,
+    selectStandardPreset,
+    tiebreakError,
+  } = controller;
+
+  const isStandard = draft.preset === "BGMI_STANDARD";
 
   return (
-    <section className="mt-8 scroll-mt-24 md:scroll-mt-10 sm:mt-12" id="scoring">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-black text-muted" aria-hidden="true">
-          03
-        </span>
-        <p className="eyebrow">Scoring</p>
-      </div>
-      <div className="mt-2 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-foreground sm:text-3xl">
-            Configure scoring
-          </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-            Choose the standard BGMI rules or adjust the values for this
-            tournament.
-          </p>
-        </div>
-        <span
-          className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${
-            isDirty
-              ? "border-amber-500/20 bg-amber-50 text-amber-900"
-              : "border-green-500/20 bg-green-50 text-green-900"
-          }`}
-          role="status"
-        >
-          {isDirty ? "Unsaved changes" : "Saved"}
-        </span>
-      </div>
+    <section className="w-full space-y-4 md:space-y-6" id="scoring">
+      <form onSubmit={formik.handleSubmit} noValidate className="space-y-4 md:space-y-6 w-full">
+        {/* Header with Breadcrumbs and Status */}
+        <ScoringHeaderSection tournament={tournament} isDirty={isDirty} />
 
-      <form className="panel mt-5 overflow-hidden" onSubmit={formik.handleSubmit} noValidate>
-        <div className="border-b border-border p-5 sm:p-6 bg-surface">
-          <span className="field-label">Scoring rules</span>
-          <div className="mt-2 grid grid-cols-2 gap-2" role="group" aria-label="Scoring preset">
-            <button
-              className={`min-h-12 rounded-lg border px-3 text-sm font-bold transition-colors ${
-                draft.preset === "BGMI_STANDARD"
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border bg-background text-muted-foreground hover:bg-surface-raised"
-              }`}
-              type="button"
-              aria-pressed={draft.preset === "BGMI_STANDARD"}
-              onClick={selectStandardPreset}
-            >
-              BGMI Standard
-            </button>
-            <button
-              className={`min-h-12 rounded-lg border px-3 text-sm font-bold transition-colors ${
-                draft.preset === "CUSTOM"
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border bg-background text-muted-foreground hover:bg-surface-raised"
-              }`}
-              type="button"
-              aria-pressed={draft.preset === "CUSTOM"}
-              onClick={selectCustom}
-            >
-              Custom
-            </button>
-          </div>
-        </div>
+        {/* Main 12-Column Responsive Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start w-full">
+          {/* Primary Left Column: Mode Selector, Placement Points Table */}
+          <div className="md:col-span-7 min-w-0 w-full space-y-4 md:space-y-6">
+            <ScoringModeSelector
+              preset={draft.preset}
+              onSelectStandard={selectStandardPreset}
+              onSelectCustom={selectCustom}
+            />
 
-        <div className="space-y-8 p-5 sm:p-6 bg-background">
-          <PlacementPointsEditor
-            rows={draft.placementPoints}
-            errors={placementErrors}
-            onChange={(placement, points) =>
-              applyChange({
-                placementPoints: draft.placementPoints.map((row) =>
-                  row.placement === placement ? { ...row, points } : row,
-                ),
-              })
-            }
-          />
-
-          <div className="max-w-sm">
-            <Label className="field-label" htmlFor="pointsPerFinish">
-              Points per finish
-            </Label>
-            <Input
-              className="field-control font-black tabular-nums mt-1.5"
-              id="pointsPerFinish"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={draft.pointsPerFinish}
-              aria-invalid={Boolean(finishError)}
-              disabled={draft.preset === "BGMI_STANDARD"}
-              onChange={(event) =>
-                applyChange({ pointsPerFinish: event.currentTarget.value })
+            <PlacementPointsEditor
+              rows={draft.placementPoints}
+              errors={placementErrors}
+              isStandard={isStandard}
+              onChange={(placement, points) =>
+                applyChange({
+                  placementPoints: draft.placementPoints.map((row) =>
+                    row.placement === placement ? { ...row, points } : row,
+                  ),
+                })
               }
             />
-            {finishError ? <p className="field-error mt-2">{finishError}</p> : null}
           </div>
 
-          <TiebreakerEditor
-            criteria={draft.tiebreakers}
-            error={tiebreakError}
-            onChange={(tiebreakers) => applyChange({ tiebreakers })}
-          />
+          {/* Supporting Right Column: Finish Points, Save Card, Scope Info, Advanced Rules */}
+          <div className="md:col-span-5 min-w-0 w-full space-y-4 md:space-y-6">
+            <FinishPointsSection
+              pointsPerFinish={draft.pointsPerFinish}
+              isStandard={isStandard}
+              finishError={finishError}
+              onChange={(pointsPerFinish) => applyChange({ pointsPerFinish })}
+            />
 
-          {generalIssues.length > 0 ? (
-            <ul className="space-y-1 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400" role="alert">
-              {generalIssues.map((issue) => (
-                <li key={`${issue.field}-${issue.message}`}>{issue.message}</li>
-              ))}
-            </ul>
-          ) : null}
-          {saveError ? (
-            <p className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400" role="alert">
-              {saveError}
-            </p>
-          ) : null}
-          {saved ? (
-            <p className="rounded-lg border border-green-500/20 bg-green-50 p-3 text-sm font-bold text-green-900" role="status">
-              Scoring saved
-            </p>
-          ) : null}
+            <ScoringSaveCard
+              isSaving={isSaving}
+              isDirty={isDirty}
+              saved={saved}
+              saveError={saveError}
+              generalIssues={generalIssues}
+            />
 
-          <Button
-            className="primary-action w-full disabled:cursor-not-allowed"
-            type="submit"
-            disabled={isSaving || !isDirty}
-          >
-            {isSaving ? "Saving scoring…" : "Save Scoring"}
-          </Button>
+            {/* Custom Mode Hint */}
+            <div
+              className="flex items-center gap-2 px-1 py-1 text-xs text-slate-500"
+              data-purpose="mode-hint"
+            >
+              <svg
+                className="w-4 h-4 text-[#ea580c] shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                />
+              </svg>
+              <span>
+                Switch preset to{" "}
+                <strong className="font-semibold text-slate-700">Custom</strong>{" "}
+                to modify numeric values and decimal points.
+              </span>
+            </div>
+
+            {/* Advanced Ranking Rules (Right Column below custom mode hint) */}
+            <TiebreakerEditor
+              criteria={draft.tiebreakers}
+              error={tiebreakError}
+              onChange={(tiebreakers) => applyChange({ tiebreakers })}
+            />
+          </div>
         </div>
       </form>
     </section>

@@ -31,7 +31,9 @@ export function ScoringRoute({ tournamentId }: { readonly tournamentId: string }
       }
     }
     void load();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [repositories.tournament, tournamentId]);
 
   const handleSaved = useCallback((tournament: GuestTournament) => {
@@ -55,13 +57,19 @@ export function ScoringRoute({ tournamentId }: { readonly tournamentId: string }
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-8 md:py-8 flex flex-col gap-4 md:gap-6">
-      <ScoringConfiguration
-        initialConfig={state.tournament.scoringConfig}
-        tournamentId={tournamentId}
-        repository={repositories.tournament}
-        onSaved={handleSaved}
-      />
+    <main
+      className="w-full flex-1 px-4 pt-4 pb-24 md:py-8 md:px-10 flex flex-col items-center"
+      data-purpose="scoring-main"
+    >
+      <div className="w-full max-w-5xl space-y-4 md:space-y-6">
+        <ScoringConfiguration
+          tournament={state.tournament}
+          initialConfig={state.tournament.scoringConfig}
+          tournamentId={tournamentId}
+          repository={repositories.tournament}
+          onSaved={handleSaved}
+        />
+      </div>
     </main>
   );
 }
