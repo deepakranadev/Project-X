@@ -1,14 +1,19 @@
 "use client";
 
+import React, { useState } from "react";
+import type { Tournament } from "@/domain/tournaments/types";
 import type { GuestTeamRepository } from "@/features/teams/teamRepository";
 import type { GuestTeam } from "@/features/teams/types";
 import { useTeamManagement } from "@/features/teams/useTeamManagement";
 
+import { TeamAddSheet } from "./TeamAddSheet";
 import { TeamBulkForm } from "./TeamBulkForm";
 import { TeamEditSheet } from "./TeamEditSheet";
-import { TeamRoster } from "./TeamRoster";
+import { TeamRosterTable } from "./TeamRosterTable";
+import { TeamsHeaderSection } from "./TeamsHeaderSection";
 
 interface TeamManagementProps {
+  readonly tournament: Tournament;
   readonly tournamentId: string;
   readonly teams: readonly GuestTeam[];
   readonly repository: GuestTeamRepository;
@@ -16,6 +21,7 @@ interface TeamManagementProps {
 }
 
 export function TeamManagement({
+  tournament,
   tournamentId,
   teams,
   repository,
@@ -27,10 +33,49 @@ export function TeamManagement({
     repository,
     onTeamsChanged,
   );
-  const { editingTeam, error, isReordering, setEditingTeam } = controller;
+  const { editingTeam, error, setEditingTeam } = controller;
+  const [isAddingTeam, setIsAddingTeam] = useState(false);
+
+  function handleFocusBulkAdd() {
+    const bulkInput = document.getElementById("bulkTeamNames");
+    if (bulkInput) {
+      bulkInput.focus();
+      bulkInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
+  function handleTeamCreated(createdTeam: GuestTeam) {
+    controller.publishCreated([...teams, createdTeam]);
+  }
 
   return (
-    <div className="mt-5 space-y-5 sm:mt-7 sm:space-y-7">
+    <div className="w-full space-y-5 md:space-y-6" data-purpose="teams-management">
+      {/* Header with Breadcrumbs & Action Bar */}
+      <TeamsHeaderSection
+        tournament={tournament}
+        teamsCount={teams.length}
+        onAddTeam={() => setIsAddingTeam(true)}
+        onBulkAdd={handleFocusBulkAdd}
+      />
+
+      {error ? (
+        <p
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+          role="alert"
+        >
+          {error}
+        </p>
+      ) : null}
+
+      {/* Team Roster Table / List or Empty State */}
+      <TeamRosterTable
+        teams={teams}
+        onEdit={setEditingTeam}
+        onAddTeam={() => setIsAddingTeam(true)}
+        onBulkAdd={handleFocusBulkAdd}
+      />
+
+      {/* Fast Roster Bulk Entry Card */}
       <TeamBulkForm
         existingTeams={teams}
         tournamentId={tournamentId}
@@ -38,32 +83,18 @@ export function TeamManagement({
         onCreated={controller.publishCreated}
       />
 
-
-      {error ? (
-        <p
-          className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400"
-          role="alert"
-        >
-          {error}
-        </p>
+      {/* Add Single Team Sheet */}
+      {isAddingTeam ? (
+        <TeamAddSheet
+          tournamentId={tournamentId}
+          defaultSlotNumber={teams.length + 1}
+          repository={repository}
+          onClose={() => setIsAddingTeam(false)}
+          onCreated={handleTeamCreated}
+        />
       ) : null}
 
-      {teams.length > 0 ? (
-        <TeamRoster
-          teams={teams}
-          isReordering={isReordering}
-          onEdit={setEditingTeam}
-          onMove={(index, direction) => void controller.move(index, direction)}
-        />
-      ) : (
-        <section className="rounded-2xl border border-dashed border-border bg-surface-raised/50 p-5 text-center sm:p-7">
-          <p className="text-sm font-bold text-foreground">No teams added yet</p>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Paste the roster above. Slots are assigned automatically in order.
-          </p>
-        </section>
-      )}
-
+      {/* Edit / Delete Team Sheet */}
       {editingTeam ? (
         <TeamEditSheet
           key={editingTeam.id}

@@ -2,36 +2,58 @@
 
 import { useEffect, useState, useCallback } from "react";
 
+import type { Tournament } from "@/domain/tournaments/types";
 import { TeamManagement } from "@/features/teams/components/TeamManagement";
 import type { GuestTeam } from "@/features/teams/types";
+import { useWorkspaceCounts } from "./WorkspaceCountContext";
 import { useWorkspaceRepositories } from "./WorkspaceRepositoryProvider";
 
 type TeamsRouteState =
   | { readonly status: "loading" }
-  | { readonly status: "ready"; readonly teams: readonly GuestTeam[] }
+  | {
+      readonly status: "ready";
+      readonly tournament: Tournament;
+      readonly teams: readonly GuestTeam[];
+    }
   | { readonly status: "error" };
 
 export function TeamsRoute({ tournamentId }: { readonly tournamentId: string }) {
   const repositories = useWorkspaceRepositories();
+  const { setTeamsCount } = useWorkspaceCounts();
   const [state, setState] = useState<TeamsRouteState>({ status: "loading" });
 
   useEffect(() => {
     let active = true;
     async function load() {
       try {
-        const teams = await repositories.teams.listTeamsByTournament(tournamentId);
-        if (active) setState({ status: "ready", teams });
+        const [tournament, teams] = await Promise.all([
+          repositories.tournament.getTournament(tournamentId),
+          repositories.teams.listTeamsByTournament(tournamentId),
+        ]);
+        if (!active) return;
+        if (!tournament) {
+          setState({ status: "error" });
+          return;
+        }
+        setState({ status: "ready", tournament, teams });
+        setTeamsCount(teams.length);
       } catch {
         if (active) setState({ status: "error" });
       }
     }
     void load();
-    return () => { active = false; };
-  }, [repositories.teams, tournamentId]);
+    return () => {
+      active = false;
+    };
+  }, [repositories.teams, repositories.tournament, setTeamsCount, tournamentId]);
 
-  const handleTeamsChanged = useCallback((teams: readonly GuestTeam[]) => {
-    setState({ status: "ready", teams });
-  }, []);
+  const handleTeamsChanged = useCallback(
+    (teams: readonly GuestTeam[]) => {
+      setState((prev) => (prev.status === "ready" ? { ...prev, teams } : prev));
+      setTeamsCount(teams.length);
+    },
+    [setTeamsCount],
+  );
 
   if (state.status === "loading") {
     return (
@@ -50,29 +72,19 @@ export function TeamsRoute({ tournamentId }: { readonly tournamentId: string }) 
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-8 md:py-8 flex flex-col gap-4 md:gap-6">
-      <section className="scroll-mt-24 md:scroll-mt-10" id="teams">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-black text-muted" aria-hidden="true">
-            02
-          </span>
-          <p className="eyebrow">Team setup</p>
-        </div>
-        <h2 className="mt-2 text-2xl font-black text-foreground sm:text-3xl">
-          Build the roster
-        </h2>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-          Add the full lineup in one paste. You can edit names, slots, and
-          logos at any time.
-        </p>
-      </section>
-
-      <TeamManagement
-        tournamentId={tournamentId}
-        teams={state.teams}
-        repository={repositories.teams}
-        onTeamsChanged={handleTeamsChanged}
-      />
+    <main
+      className="flex-1 overflow-y-auto px-4 pt-4 pb-24 md:py-8 md:px-10 flex flex-col items-center"
+      data-purpose="teams-overview-main"
+    >
+      <div className="w-full max-w-5xl space-y-4 md:space-y-6">
+        <TeamManagement
+          tournament={state.tournament}
+          tournamentId={tournamentId}
+          teams={state.teams}
+          repository={repositories.teams}
+          onTeamsChanged={handleTeamsChanged}
+        />
+      </div>
     </main>
   );
 }

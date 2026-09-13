@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { useSelectedLayoutSegment } from "next/navigation";
-import { useWorkspaceRepositories } from "./WorkspaceRepositoryProvider";
+import { useWorkspaceCounts } from "./WorkspaceCountContext";
 
 export type WorkspaceSection = "overview" | "teams" | "scoring" | "matches" | "standings";
 
@@ -25,33 +25,7 @@ function useActiveSection(): WorkspaceSection {
 
 export function DesktopSidebar({ tournamentId }: NavigationProps) {
   const activeSection = useActiveSection();
-  const repositories = useWorkspaceRepositories();
-
-  const [counts, setCounts] = useState<{ teams: number | null; matches: number | null }>({
-    teams: null,
-    matches: null,
-  });
-
-  useEffect(() => {
-    let active = true;
-    async function loadCounts() {
-      try {
-        const [teams, matches] = await Promise.all([
-          repositories.teams.listTeamsByTournament(tournamentId),
-          repositories.matchFeature.matches.listMatchesByTournament(tournamentId),
-        ]);
-        if (active) {
-          setCounts({ teams: teams.length, matches: matches.length });
-        }
-      } catch {
-        // ignore
-      }
-    }
-    void loadCounts();
-    return () => {
-      active = false;
-    };
-  }, [repositories.teams, repositories.matchFeature.matches, tournamentId]);
+  const { counts } = useWorkspaceCounts();
 
   const getLinkClass = (section: WorkspaceSection) => {
     const isActive = activeSection === section;

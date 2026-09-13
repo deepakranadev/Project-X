@@ -36,7 +36,7 @@ export function TeamDeletionControls({
   }, [isDeleting]);
 
   return (
-    <div className="mt-5 border-t border-white/8 pt-5">
+    <div className="mt-5 border-t border-slate-200 pt-5">
       <AlertDialog
         open={open}
         onOpenChange={(val) => {
@@ -45,7 +45,7 @@ export function TeamDeletionControls({
       >
         <AlertDialogTrigger asChild>
           <button
-            className="min-h-11 text-sm font-bold text-red-300 hover:text-red-200"
+            className="min-h-11 text-sm font-semibold text-red-600 hover:text-red-700 transition-colors"
             type="button"
           >
             Remove team
@@ -63,7 +63,7 @@ export function TeamDeletionControls({
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-400 text-slate-950 hover:bg-red-500 disabled:opacity-60"
+              className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
               type="button"
               disabled={isDeleting}
               onClick={(e) => {
