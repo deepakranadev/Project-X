@@ -7,6 +7,7 @@ test("customizes and reloads tournament scoring on mobile", async ({ page }) => 
   await page.getByRole("link", { name: "Create Points Table" }).click();
   await page.getByLabel("Tournament name").fill("Scoring Masters");
   await page.getByRole("button", { name: "Create Tournament" }).click();
+  await page.getByRole("link", { name: "Teams" }).first().click();
 
   await page
     .getByLabel("Paste one team per line")

@@ -14,6 +14,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
           cancelButton: "group-[.toast]:bg-slate-800 group-[.toast]:text-slate-400",
         },
       }}
+      closeButton
+      mobileOffset="calc(80px + env(safe-area-inset-bottom))"
       {...props}
     />
   )

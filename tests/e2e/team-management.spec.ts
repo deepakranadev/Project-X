@@ -7,6 +7,7 @@ test("creates, edits, and reloads a six-team mobile roster", async ({ page }) =>
   await page.getByRole("link", { name: "Create Points Table" }).click();
   await page.getByLabel("Tournament name").fill("Roster Rush");
   await page.getByRole("button", { name: "Create Tournament" }).click();
+  await page.getByRole("link", { name: "Teams" }).first().click();
 
   const bulkEntry = page.getByLabel("Paste one team per line");
   await bulkEntry.fill(
@@ -65,16 +66,19 @@ test("shows the match-history guard and keeps the referenced team and Draft inta
   await page.getByRole("link", { name: "Create Points Table" }).click();
   await page.getByLabel("Tournament name").fill("Reference Guard Cup");
   await page.getByRole("button", { name: "Create Tournament" }).click();
+  await page.getByRole("link", { name: "Teams" }).first().click();
   await page
     .getByLabel("Paste one team per line")
     .fill("Team Soul\r\nGodLike Esports");
   await page.getByRole("button", { name: "Add 2 Teams" }).click();
 
+  await page.getByRole("link", { name: "Matches", exact: true }).click();
   await page.getByRole("button", { name: "Create Match" }).click();
   const matchEditor = page.locator("[data-match-entry]");
   await expect(matchEditor.getByText("Draft", { exact: true })).toBeVisible();
   await matchEditor.getByRole("button", { name: "Close" }).click();
 
+  await page.getByRole("link", { name: "Teams", exact: true }).click();
   await page.getByRole("button", { name: "Edit Team Soul" }).click();
   const teamEditor = page.getByRole("dialog", { name: "Edit team" });
   await teamEditor.getByRole("button", { name: "Remove team" }).click();
@@ -89,6 +93,8 @@ test("shows the match-history guard and keeps the referenced team and Draft inta
   await expect(
     page.getByRole("region", { name: "TEAMS" }).getByRole("listitem"),
   ).toHaveCount(2);
+
+  await page.getByRole("link", { name: "Matches", exact: true }).click();
 
   const matchRow = page.getByRole("listitem").filter({
     has: page.getByRole("button", { name: "Open Match 1" }),
