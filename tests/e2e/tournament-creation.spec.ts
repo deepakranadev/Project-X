@@ -23,20 +23,19 @@ test("creates a guest BGMI tournament that survives refresh", async ({
   });
   await page.getByRole("button", { name: "Create Tournament" }).click();
 
-  await expect(page).toHaveURL(/\/tournaments\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/tournaments\/[0-9a-f-]+\/overview$/);
   await expect(
     page.getByRole("heading", { level: 1, name: "Mobile Masters" }),
   ).toBeVisible();
   await expect(page.getByText("BGMI", { exact: true }).first()).toBeVisible();
-  // await expect(page.getByText("Nova Esports", { exact: true })).toBeVisible();
-  // await expect(page.getByAltText("Mobile Masters logo")).toBeVisible();
-  // await expect(page.getByText("Team setup", { exact: true })).toBeVisible();
 
   await page.reload();
 
+  await expect(page).toHaveURL(/\/tournaments\/[0-9a-f-]+\/overview$/);
   await expect(
     page.getByRole("heading", { level: 1, name: "Mobile Masters" }),
   ).toBeVisible();
-  // await expect(page.getByAltText("Mobile Masters logo")).toBeVisible();
-  await expect(page.getByText("Ready to begin")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "No matches yet" }),
+  ).toBeVisible();
 });
