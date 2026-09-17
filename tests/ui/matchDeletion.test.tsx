@@ -54,10 +54,12 @@ describe("Match Delete Interaction Tests", () => {
     );
 
     // Wait for matches to load
-    const deleteTrigger = await screen.findByRole("button", { name: "Delete Match 1" });
+    const optionsTrigger = await screen.findByRole("button", { name: "Match 1 options" });
 
-    // Open
-    fireEvent.click(deleteTrigger);
+    // Open options menu and select Delete Match
+    fireEvent.keyDown(optionsTrigger, { key: "Enter" });
+    const deleteMenuItem = await screen.findByRole("menuitem", { name: "Delete Match" });
+    fireEvent.click(deleteMenuItem);
 
     const confirmDialog = await screen.findByRole("alertdialog");
     expect(confirmDialog).toBeTruthy();
@@ -94,8 +96,10 @@ describe("Match Delete Interaction Tests", () => {
       />
     );
 
-    const deleteTrigger = await screen.findByRole("button", { name: "Delete Match 1" });
-    fireEvent.click(deleteTrigger);
+    const optionsTrigger = await screen.findByRole("button", { name: "Match 1 options" });
+    fireEvent.keyDown(optionsTrigger, { key: "Enter" });
+    const deleteMenuItem = await screen.findByRole("menuitem", { name: "Delete Match" });
+    fireEvent.click(deleteMenuItem);
 
     const confirmBtn = await screen.findByRole("button", { name: "Delete Match" });
     fireEvent.click(confirmBtn);
@@ -127,8 +131,10 @@ describe("Match Delete Interaction Tests", () => {
       />
     );
 
-    const deleteTrigger = await screen.findByRole("button", { name: "Delete Match 1" });
-    fireEvent.click(deleteTrigger);
+    const optionsTrigger = await screen.findByRole("button", { name: "Match 1 options" });
+    fireEvent.keyDown(optionsTrigger, { key: "Enter" });
+    const deleteMenuItem = await screen.findByRole("menuitem", { name: "Delete Match" });
+    fireEvent.click(deleteMenuItem);
 
     const confirmBtn = await screen.findByRole("button", { name: "Delete Match" });
     fireEvent.click(confirmBtn);

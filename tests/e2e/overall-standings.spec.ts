@@ -81,7 +81,8 @@ test("updates overall standings as a match is finalized, reopened, re-finalized,
   ).toContainText("12");
 
   await page.getByRole("link", { name: "Matches", exact: true }).click();
-  await page.getByRole("button", { name: "Delete Match 1" }).click();
+  await page.getByRole("button", { name: "Match 1 options" }).click();
+  await page.getByRole("menuitem", { name: "Delete Match" }).click();
   await page.getByRole("button", { name: "Delete Match" }).click();
   await expect(page.locator('[data-sonner-toast]').last()).toBeVisible();
   await page.getByRole("link", { name: "Standings", exact: true }).click();

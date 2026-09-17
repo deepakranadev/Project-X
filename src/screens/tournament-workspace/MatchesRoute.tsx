@@ -3,33 +3,48 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import type { Tournament } from "@/domain/tournaments/types";
 import type { Team } from "@/domain/teams/types";
 import { MatchManagement } from "@/features/matches/components/MatchManagement";
 import { useWorkspaceRepositories } from "@/screens/tournament-workspace/WorkspaceRepositoryProvider";
+import { useWorkspaceCounts } from "@/screens/tournament-workspace/WorkspaceCountContext";
 
 type MatchesRouteState =
   | { readonly status: "loading" }
-  | { readonly status: "ready"; readonly teams: readonly Team[] }
+  | {
+      readonly status: "ready";
+      readonly tournament: Tournament;
+      readonly teams: readonly Team[];
+    }
   | { readonly status: "error" };
 
 export function MatchesRoute({ tournamentId }: { readonly tournamentId: string }) {
   const router = useRouter();
   const repositories = useWorkspaceRepositories();
+  const { setMatchesCount } = useWorkspaceCounts();
   const [state, setState] = useState<MatchesRouteState>({ status: "loading" });
 
   useEffect(() => {
     let active = true;
     async function load() {
       try {
-        const teams = await repositories.teams.listTeamsByTournament(tournamentId);
-        if (active) setState({ status: "ready", teams });
+        const [tournament, teams] = await Promise.all([
+          repositories.tournament.getTournament(tournamentId),
+          repositories.teams.listTeamsByTournament(tournamentId),
+        ]);
+        if (!active) return;
+        if (!tournament) {
+          setState({ status: "error" });
+          return;
+        }
+        setState({ status: "ready", tournament, teams });
       } catch {
         if (active) setState({ status: "error" });
       }
     }
     void load();
     return () => { active = false; };
-  }, [repositories.teams, tournamentId]);
+  }, [repositories.teams, repositories.tournament, tournamentId]);
 
   const handleMatchOpened = useCallback(
     (matchId: string) => {
@@ -38,9 +53,14 @@ export function MatchesRoute({ tournamentId }: { readonly tournamentId: string }
     [router, tournamentId],
   );
 
-  const handleMatchesChanged = useCallback(() => {
-    // Refresh not currently necessary since matches manage their own list state
-  }, []);
+  const handleMatchesChanged = useCallback(async () => {
+    try {
+      const matches = await repositories.matchFeature.matches.listMatchesByTournament(tournamentId);
+      setMatchesCount(matches.length);
+    } catch {
+      // ignore — count will be refreshed on next render
+    }
+  }, [repositories.matchFeature.matches, tournamentId, setMatchesCount]);
 
   if (state.status === "loading") {
     return (
@@ -59,30 +79,20 @@ export function MatchesRoute({ tournamentId }: { readonly tournamentId: string }
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-8 md:py-8 flex flex-col gap-4 md:gap-6">
-      <section className="scroll-mt-24 md:scroll-mt-10" id="matches">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-black text-muted" aria-hidden="true">
-            04
-          </span>
-          <p className="eyebrow">Match entry</p>
-        </div>
-        <h2 className="mt-2 text-2xl font-black text-foreground sm:text-3xl">
-          Enter match results
-        </h2>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-          Create matches and log team performance. Standings update automatically
-          when you finalize a match.
-        </p>
-      </section>
-
-      <MatchManagement
-        tournamentId={tournamentId}
-        teams={state.teams}
-        repositories={repositories.matchFeature}
-        onMatchesChanged={handleMatchesChanged}
-        onMatchOpened={handleMatchOpened}
-      />
+    <main
+      className="w-full flex-1 px-4 pt-4 pb-24 md:py-8 md:px-10 flex flex-col items-center"
+      data-purpose="matches-main"
+    >
+      <div className="w-full max-w-5xl space-y-4 md:space-y-6">
+        <MatchManagement
+          tournamentId={tournamentId}
+          tournamentName={state.tournament.name}
+          teams={state.teams}
+          repositories={repositories.matchFeature}
+          onMatchesChanged={() => { void handleMatchesChanged(); }}
+          onMatchOpened={handleMatchOpened}
+        />
+      </div>
     </main>
   );
 }
