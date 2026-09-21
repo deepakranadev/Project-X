@@ -1,3 +1,5 @@
+"use client";
+
 import type { KeyboardEvent } from "react";
 
 import type { StoredMatchResult } from "@/domain/matches/types";
@@ -13,7 +15,11 @@ interface MatchResultGridProps {
   readonly results: readonly StoredMatchResult[];
   readonly teams: readonly Team[];
   readonly onInputKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
-  readonly onNumberChange: (resultId: string, field: "placement" | "kills", rawValue: string) => void;
+  readonly onNumberChange: (
+    resultId: string,
+    field: "placement" | "kills",
+    rawValue: string,
+  ) => void;
   readonly onToggleDnp: (resultId: string) => void;
 }
 
@@ -27,23 +33,37 @@ export function MatchResultGrid({
   onToggleDnp,
 }: MatchResultGridProps) {
   const teamById = new Map(teams.map((team) => [team.id, team]));
+
   return (
-    <div className="divide-y divide-border bg-surface" data-testid="manual-result-grid">
-      <div className="grid grid-cols-[minmax(0,1fr)_3.75rem_3.75rem_3.25rem] gap-1.5 border-b border-border bg-surface-raised px-3 py-2 text-[0.68rem] font-black uppercase tracking-wide text-muted-foreground sm:grid-cols-[minmax(0,1fr)_5rem_5rem_4.5rem] sm:gap-3 sm:px-6">
-        <span>Team</span><span className="text-center">Place</span><span className="text-center">Fin</span><span className="text-center">DNP</span>
+    <div
+      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      data-testid="manual-result-grid"
+    >
+      {/* Table header */}
+      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_3.5rem_3.5rem_2.75rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_5.5rem_5.5rem_4rem] items-center gap-1.5 sm:gap-4 border-b border-slate-200 bg-slate-50/75 px-3 sm:px-6 py-2.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+        <span className="text-center">#</span>
+        <span>Team</span>
+        <span className="text-center">Place</span>
+        <span className="text-center">Fin</span>
+        <span className="text-center">DNP</span>
       </div>
-      {results.map((result, index) => (
-        <MatchResultRow
-          key={result.id}
-          result={result}
-          team={teamById.get(result.teamId)}
-          hasIssue={matchResultHasIssue(result, index, issues)}
-          disabled={disabled}
-          onNumberChange={onNumberChange}
-          onToggleDnp={onToggleDnp}
-          onInputKeyDown={onInputKeyDown}
-        />
-      ))}
+
+      {/* Rows */}
+      <div className="divide-y divide-slate-100 bg-white">
+        {results.map((result, index) => (
+          <MatchResultRow
+            key={result.id}
+            index={index}
+            result={result}
+            team={teamById.get(result.teamId)}
+            hasIssue={matchResultHasIssue(result, index, issues)}
+            disabled={disabled}
+            onNumberChange={onNumberChange}
+            onToggleDnp={onToggleDnp}
+            onInputKeyDown={onInputKeyDown}
+          />
+        ))}
+      </div>
     </div>
   );
 }

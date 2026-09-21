@@ -17,6 +17,7 @@ interface MatchEntryProps {
   readonly match: TournamentMatch;
   readonly resultRepository: MatchResultRepository;
   readonly teams: readonly Team[];
+  readonly tournamentName?: string;
   readonly writeCoordinators: MatchWriteCoordinatorRegistry;
   readonly onClose: () => void;
   readonly onMatchChange: (match: TournamentMatch) => void;
@@ -27,15 +28,16 @@ export function MatchEntry({
   match,
   resultRepository,
   teams,
+  tournamentName,
   writeCoordinators,
   onClose,
   onMatchChange,
 }: MatchEntryProps) {
   const editorRef = useRef<HTMLFormElement>(null);
-  
+
   const coordinator = useMemo(
     () => writeCoordinators.getCoordinator(match.id),
-    [writeCoordinators, match.id]
+    [writeCoordinators, match.id],
   );
 
   const draft = useMatchDraftState(match, teams, resultRepository, coordinator);
@@ -49,23 +51,28 @@ export function MatchEntry({
     onMatchChange,
   );
 
-  const focusNextInput = useCallback((event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== "Enter") return;
-    event.preventDefault();
-    const inputs = Array.from(
-      editorRef.current?.querySelectorAll<HTMLInputElement>(
-        "input[data-result-input]:not(:disabled)",
-      ) ?? [],
-    );
-    const next = inputs[inputs.indexOf(event.currentTarget) + 1];
-    if (next) {
-      next.focus();
-      next.select();
-    }
-  }, []);
+  const focusNextInput = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      const inputs = Array.from(
+        editorRef.current?.querySelectorAll<HTMLInputElement>(
+          "input[data-result-input]:not(:disabled)",
+        ) ?? [],
+      );
+      const next = inputs[inputs.indexOf(event.currentTarget) + 1];
+      if (next) {
+        next.focus();
+        next.select();
+      }
+    },
+    [],
+  );
 
   return (
     <MatchEntryForm
+      tournamentId={match.tournamentId}
+      tournamentName={tournamentName}
       draft={draft}
       editorRef={editorRef}
       match={match}
