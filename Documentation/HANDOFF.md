@@ -58,111 +58,88 @@ src/infrastructure  (IndexedDB v4 persistence, storage schema mapping, runtime t
 
 - **`src/app`**: Owns routing and layout shells. Does not contain domain logic.
 - **`src/screens`**: Owns composition boundaries. `WorkspaceRepositoryProvider` provides singleton client repositories to feature components.
-- **`src/features`**: Owns workflows (tournaments, teams, scoring, matches, standings). Feature React components have zero concrete infrastructure imports.
-- **`src/domain`**: Pure, browser-neutral business logic. Zero dependencies on Next.js, React, or IndexedDB.
-- **`src/infrastructure`**: Concrete IndexedDB implementation. Schema version 4. Runtime trust boundary sanitizes untrusted stored data before domain ingestion.
-- **`src/shared`**: Reusable UI primitives (`Button`, `Input`, `Sheet`, `AlertDialog`, `Sonner`, `cn`). Created for genuine reuse only.
+- **`src/features`**: Feature modules (`tournaments`, `teams`, `scoring`, `matches`, `standings`). Feature components do NOT import concrete infrastructure or screens.
+- **`src/domain`**: Pure, browser-neutral business logic and formulas. No `indexedDB`, no React hooks, no DOM types.
+- **`src/infrastructure`**: Concrete repository implementations wrapping IndexedDB schema v4 (`openloby_guest_db`). Storage values are treated as untrusted inputs.
 
 ---
 
-## 4. Frozen Routing Architecture (ROUTE-R0 – ROUTE-R5)
+## 4. Overall Standings Visual & Competitive Architecture (UI-L3)
 
-Tournament workspace routing (ROUTE-R0 through ROUTE-R5) is **complete and strictly frozen**.
+### Architectural Composition (`src/features/standings/components/`)
+1. **`OverallStandings.tsx`**: Route feature orchestrator that reads authoritative snapshot from `useOverallStandings`.
+2. **`StandingsHeader.tsx`**: Renders desktop breadcrumbs, context heading with Active status pill, and desktop `Export Points Table →` CTA; renders mobile tournament context and calculation progress bar.
+3. **`StandingsTopThree.tsx`**: Compact podium cards derived from the identical authoritative standings rows. On desktop, renders 3 horizontal cards (1st with gold accent and stats, 2nd slate, 3rd bronze). On mobile, renders a 3-column compact tournament leaders podium with the 1st place card highlighted with an orange border.
+4. **`StandingsTable.tsx`**: Dense desktop leaderboard table (`RANK`, `TEAM`, `MP`, `WWCD`, `PLACEMENT PTS`, `FINISHES`, `TOTAL`). Top 3 rows receive rank badge styling; teams with missed matches receive truthful `X DNP` badges.
+5. **`StandingsMobileList.tsx`**: Dense mobile leaderboard list optimized for 360px–430px viewports with zero horizontal overflow.
+6. **`StandingsEmptyState.tsx`**: Truthfully distinguishes between "No finalized matches yet" and "Only draft matches exist" with direct action links to Matches.
+7. **`StandingsPublishingActions.tsx`**: Mobile bottom publishing action bar housing the prominent `Export Points Table →` CTA.
+8. **`formatStandingsScore.ts`**: Pure helper ensuring integer scores render cleanly (e.g. `12`) while decimal scores format up to 2 decimal places with fixed padding (e.g. `11.50`, `0.25`).
 
-### Active Route Map
-- `/tournaments/[id]` → Server-side redirect (`src/app/tournaments/[id]/page.tsx`) to `/tournaments/[id]/overview`
-- `/tournaments/[id]/overview` → Tournament Overview dashboard (`OverviewRoute.tsx`)
-- `/tournaments/[id]/teams` → Team setup & roster management (`TeamsRoute.tsx`)
-- `/tournaments/[id]/scoring` → Scoring preset & custom configuration (`ScoringRoute.tsx`)
-- `/tournaments/[id]/matches` → Match list, creation, and continuation (`MatchesRoute.tsx`)
-- `/tournaments/[id]/matches/[matchId]` → MatchEntry form (`MatchEntryRoute.tsx`)
-- `/tournaments/[id]/standings` → Overall standings points table (`StandingsRoute.tsx`)
+### Mobile Presentation Decisions
+- Focused mobile layout prioritizing `RANK`, `TEAM`, `MP`, `FIN`, and `TOTAL` (in bold primary orange).
+- Left-edge accent bar for top-3 positions.
+- Verified 0px page-level horizontal overflow (`document.documentElement.scrollWidth <= document.documentElement.clientWidth`) across 360px, 390px, and 430px viewports.
+- Mobile bottom navigation from `TournamentWorkspaceShell` remains accessible to allow fast switching between workspace tabs while publishing actions sit directly in the content stream.
 
-### Routing Invariants
-1. **Link-Based Navigation:** Desktop sidebar and mobile bottom nav use standard Next.js `<Link>` elements.
-2. **Segment-Driven Active State:** Active tab highlights derive from Next.js `useSelectedLayoutSegment()`.
-3. **No Hash Routing:** Hash routes (`#teams`, `#scoring`, `#matches`, `#standings`) are eliminated.
-4. **No Monolithic Workspace:** `TournamentWorkspaceScreen.tsx` is deleted. Each sub-route renders its dedicated route component inside `TournamentWorkspaceShell.tsx`.
-5. **Direct Refresh & History:** Every sub-route survives hard browser refresh and browser back/forward navigation.
-6. **Cross-Tournament MatchEntry Guard:** `MatchEntryRoute` validates that the requested `matchId` belongs to the current `tournamentId`. Mismatches redirect to `/tournaments/[id]/matches`.
-7. **Finalized MatchEntry Protection:** Directly accessing a `FINALIZED` match renders a read-only banner and disables edits.
-8. **Scoring Draft Safety:** Scoring edits are session-drafted. Unsaved changes discard on route navigation to prevent stale leaks, with rebase to persisted config.
-9. **MatchEntry WRITE→READ→WRITE Protection:** Immediate unmounts flush pending draft snapshots to the write coordinator; immediate remounts await `whenIdle()` before reading draft state.
+### Desktop Workspace Geometry
+- Aligned to standard OpenLoby workspace container:
+  - Container: `w-full flex-1 px-4 pt-4 pb-24 md:py-8 md:px-10 flex flex-col items-center`, `data-purpose="standings-main"`
+  - Content width: `w-full max-w-5xl space-y-4 md:space-y-6`
+  - 1440x900: `x = 328px`, `width = 1024px`, margins = `0px`
+  - 1920x1080: `x = 568px`, `width = 1024px`, margins = `0px`
 
----
+### Preserved Competitive & Scoring Invariants
+1. Only `FINALIZED` matches contribute to standings.
+2. `DRAFT` matches contribute nothing.
+3. Reopening a match removes its contribution immediately; re-finalizing restores it.
+4. Deleting a match removes its contribution immediately.
+5. `DNP` contributes 0 points and 0 `matchesPlayed`.
+6. Played match with 0 finishes counts as 1 `matchesPlayed` and remains distinct from `DNP`.
+7. Raw `MatchResults` are persisted; standings and totals are runtime-derived.
+8. Scoring remains domain-owned with `SCORE_SCALE = 100` fixed-point arithmetic.
+9. True ties share competitive rank (e.g., both tied teams display `1` or `2` without fake sequential renumbering).
+10. Team IDs never act as competitive tiebreakers.
 
-## 5. UI Status & Progress
-
-### Approved & Committed Stages
-1. **UI-F1 Overview** — Complete and committed.
-2. **UI-F2 Teams** — Complete and committed.
-3. **UI-F3 Scoring** — Complete and committed.
-4. **UI-F4 Matches** — Complete and committed (`276bf5a feat: align matches workspace desktop layout`). Outer desktop wrapper aligned with Teams and Scoring (`max-w-5xl`, balanced whitespace).
-
-### Current Stage: UI-L3 MatchEntry (UI-F5) — IMPLEMENTATION COMPLETE, AWAITING REVIEW
-- **Visual Design:** Full parity with authoritative Stitch reference (`Documentation/ui-reference/desktop/match-entry.png` and `Documentation/ui-reference/mobile/match-entry.png`).
-- **Workspace Parity:** Outer desktop shell matches sister screens (`max-w-5xl`, `x = 328px` at 1440px, `x = 568px` at 1920px).
-- **Responsive Layout:** Responsive CSS Grid where action buttons (`Save Draft`, `Finalize Match`) sit top-right on desktop (matching desktop Stitch) and flow to the bottom on mobile (matching mobile Stitch).
-- **Single DOM Button Invariant:** Exactly ONE `Finalize Match` button and ONE `Save Draft` button exist in the DOM to avoid locator ambiguity in automated tests.
-- **Mobile Overflow:** 0px document overflow across 360px, 390px, and 430px viewports (`scrollWidth === clientWidth`).
-
----
-
-## 6. MatchEntry Invariants (TTPT Hot Path)
-
-The following invariants must never be broken:
-
-1. **Native Numeric Inputs:** Placement and Finishes inputs use native React controlled inputs (`<input type="number">`). Formik and heavyweight form abstractions remain strictly banned.
-2. **React.memo Hot Path:** `MatchResultRow` is memoized; numeric input changes only re-render the single row being edited.
-3. **Keyboard / Enter Progression:** Pressing `Enter` advances focus: Placement → Finishes → Next Team Placement. `next.select()` is invoked on focus transition so users can overwrite numbers immediately without backspacing.
-4. **Played Zero Finishes vs Blank / DNP:** Finish count `0` is an explicit, valid score that is stored as `0` and displayed as `"0"`, distinct from blank or DNP (`null`).
-5. **DNP Semantics:** Did Not Play (`DNP`) sets `placement = null` and `kills = null`, contributes exactly 0 points, and excludes the team from scoring. Inputs are disabled with placeholder dash (`—`), and row displays a `DNP` badge.
-6. **Autofill Placements:** `Auto-fill placements` assigns sequential placements to all participating non-DNP teams in slot order without modifying persistence semantics.
-7. **Debounced Autosave (~500ms):** Autosaves trigger after 500ms of user input inactivity via `useMatchPersistence`.
-8. **Shared Per-Match Write Coordinator:** Coordinated via `MatchWriteCoordinatorRegistry`. All writes for a `matchId` are serialized through a single tail promise.
-9. **`whenIdle()` Barrier:** Any entity or result reads must await `coordinator.whenIdle()` before reading from persistence.
-10. **Immediate Unmount Enqueue:** Component unmount synchronously enqueues the latest draft snapshot into the coordinator.
-11. **Save/Finalize Serialization:** `runExplicit("save" | "finalize")` locks against concurrent autosaves to eliminate write races.
-12. **Finalized Status Guard:** A background autosave draft snapshot can **never** revert a `FINALIZED` match back to `DRAFT`.
-13. **Finalized Direct URL Read-Only:** Accessing a finalized match locks all inputs and action buttons in read-only state.
+### Export Points Table CTA Behavior
+- Visual-only affordance conforming to the frozen contract until UI-G1 (Graphics & Templates) is implemented.
+- Disabled when 0 finalized matches exist.
+- When clicked, displays an informative toast: `"Points table export will be available in a future release."`
+- Does not create fake downloads, synthetic PNGs, or unapproved routes.
 
 ---
 
-## 7. Deterministic Scoring Invariants
+## 5. Frozen Routing Architecture (ROUTE-R0 – ROUTE-R5)
 
-- **Fixed-Point Scaling:** `SCORE_SCALE = 100` internally to avoid IEEE-754 floating point imprecision.
-- **Custom Scoring Precision:** Supports up to 2 decimal places. Precision beyond 2 decimals is strictly rejected.
-- **Persisted vs Derived Data:** Only raw `MatchResults` are persisted. Standings, point totals, and rankings are **always derived at runtime**, never persisted.
-- **Tie-Break Rules:** Tied scores share standard competition rank (e.g., `1, 1, 3`). Configured tiebreak rules (WWCD, Placement Points, Total Kills, Recent Match) are deterministically executed.
-- **Team IDs are Non-Competitive:** Team IDs are presentation fallbacks only; they are strictly forbidden from acting as tiebreakers.
-- **AI Scoring Ban:** AI or OCR tools extract visual observations only; deterministic code owns all points calculations.
-
----
-
-## 8. Explicit Scope Boundaries
-
-- **Dark Mode:** Post-beta scope. Do NOT add `next-themes` or dark mode styling.
-- **Export & Graphics (UI-G1):** Scheduled for a future milestone. Do NOT implement fake Export functionality.
-- **Backend & Cloud Database:** Persistence is strictly client-side IndexedDB v4.
-- **OCR / Screenshot AI:** Deferred until manual core is complete and locked.
+1. **Root Redirect:** `/` → `/tournaments/new` (or last active tournament).
+2. **Creation Route:** `/tournaments/new`
+3. **Workspace Root:** `/tournaments/[id]` → Redirects server-side to `/tournaments/[id]/overview`.
+4. **Active Workspace Routes:**
+   - `/tournaments/[id]/overview`
+   - `/tournaments/[id]/teams`
+   - `/tournaments/[id]/scoring`
+   - `/tournaments/[id]/matches`
+   - `/tournaments/[id]/standings`
+   - `/tournaments/[id]/matches/[matchId]` (MatchEntry)
+5. **No Hash Routing:** Never reintroduce hash-based navigation or monolithic workspace tab state.
 
 ---
 
-## 9. Current Quality Baseline
+## 6. Current Quality Baseline
 
 | Check | Command | Result | Notes |
 |---|---|---|---|
 | **Typecheck** | `npm run typecheck` | **PASS** (exit 0) | Clean TypeScript compilation (`tsc --noEmit`) |
 | **ESLint** | `npm run lint` | **PASS** (exit 0) | Clean zero-warning check (`eslint . --max-warnings=0`) |
-| **Vitest** | `npm run test` | **PASS** (exit 0) | **310 passed across 47 test files** |
+| **Vitest** | `npm run test -- --run` | **PASS** (exit 0) | **313 passed across 48 test files** |
 | **Next Build** | `npm run build` | **PASS** (exit 0) | Compiled successfully with Turbopack (10 routes generated) |
-| **E2E Tests** | `npm run test:e2e` | **PASS** (exit 0) | **7 passed across 7 test files** (17.6s) |
-| **Madge Cycles** | `npx madge --circular ...` | **PASS** (exit 0) | **0 circular dependencies** across 153 source files |
+| **E2E Tests** | `npm run test:e2e` | **PASS** (exit 0) | **9 passed across 9 test files** (23.8s) |
+| **Madge Cycles** | `npx madge --circular ...` | **PASS** (exit 0) | **0 circular dependencies** across 159 source files |
 | **Git Diff Check** | `git diff --check` | **PASS** (exit 0) | Clean whitespace and diff check |
 
 ---
 
-## 10. Next Planned Work
+## 7. Next Planned Stage
 
-Upon external review and approval of UI-L3 MatchEntry:
-- **UI-L3 — Overall Standings** (`/tournaments/[id]/standings`)
+Upon external review and approval of UI-L3 Overall Standings:
+- **UI-L4 — Responsive / Accessibility / Regression Hardening**

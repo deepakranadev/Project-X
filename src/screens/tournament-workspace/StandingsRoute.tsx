@@ -9,7 +9,11 @@ import { useWorkspaceRepositories } from "./WorkspaceRepositoryProvider";
 
 type StandingsRouteState =
   | { readonly status: "loading" }
-  | { readonly status: "ready"; readonly tournament: GuestTournament; readonly teams: readonly GuestTeam[] }
+  | {
+      readonly status: "ready";
+      readonly tournament: GuestTournament;
+      readonly teams: readonly GuestTeam[];
+    }
   | { readonly status: "error" };
 
 export function StandingsRoute({ tournamentId }: { readonly tournamentId: string }) {
@@ -35,7 +39,9 @@ export function StandingsRoute({ tournamentId }: { readonly tournamentId: string
       }
     }
     void load();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [repositories.teams, repositories.tournament, tournamentId]);
 
   if (state.status === "loading") {
@@ -55,13 +61,18 @@ export function StandingsRoute({ tournamentId }: { readonly tournamentId: string
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-8 md:py-8 flex flex-col gap-4 md:gap-6">
-      <OverallStandings
-        tournament={state.tournament}
-        teams={state.teams}
-        repositories={repositories.standings}
-        refreshVersion={0} // No edits happen directly on Standings route that require a prop refresh
-      />
+    <main
+      className="w-full flex-1 px-4 pt-4 pb-24 md:py-8 md:px-10 flex flex-col items-center"
+      data-purpose="standings-main"
+    >
+      <div className="w-full max-w-5xl space-y-4 md:space-y-6">
+        <OverallStandings
+          tournament={state.tournament}
+          teams={state.teams}
+          repositories={repositories.standings}
+          refreshVersion={0}
+        />
+      </div>
     </main>
   );
 }
